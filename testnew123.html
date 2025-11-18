@@ -48,7 +48,7 @@
       font-size: 13px;
       margin-left: 10px;
     }
-o
+
     /* HEADER */
     header {
       background: #fff;
@@ -163,8 +163,7 @@ o
 <div class="container first-section">
   <div class="form-card">
     <h2 id="project-name" style="color:#ff7f27;">Loading Project...</h2>
-    <p id="project-details"></p>
-    <p id="project-paragraph"></p>
+    <div id="project-paragraph"></div>
 
     <div id="loading-spinner" class="text-center">
       <p>Loading project details...</p>
@@ -332,15 +331,227 @@ o
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* SIMULATION OF PROJECT LOADING */
-setTimeout(() => {
-  document.getElementById("project-name").innerText = "Project Name Example";
-  document.getElementById("project-details").innerText = "Client details loaded successfully.";
-  document.getElementById("project-paragraph").innerText = "Here is the full project description.";
+/*
+ Google Sheets -> Web page integration with dynamic paragraph generation
+ Expected sheet headers (case-insensitive):
+  - Sr. no.
+  - Project Code
+  - Client Code
+  - Project Type
+  - Project Title
+  - Patent Number
+  - Generated Link
 
-  document.getElementById("loading-spinner").style.display = "none";
-  document.getElementById("feedback-container").style.display = "block";
-}, 1200);
+ The script normalizes headers into keys like:
+   sr_no, project_code, client_code, project_type, project_title, patent_number, generated_link
+
+ Use query params to choose row:
+  - ?projectIndex=0  (0-based index)
+  - ?projectId=XYZ    (matches Project Code / project_code)
+
+ Replace SHEET_ID with your spreadsheet id and set SHEET_NAME if needed.
+*/
+
+const SHEET_ID = '1yxn338O8GbNq-UDJiJDpcX4t7U8TNZYKnL99I-nJfyw';
+const SHEET_NAME = 'Project_Data';
+
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+function parseGviz(text) {
+  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
+  if (!match) throw new Error('Unexpected gviz response format');
+  return JSON.parse(match[1]);
+}
+
+function normalizeHeader(label) {
+  if (!label) return '';
+  return label.toString().trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w_]/g, ''); // remove non-word except underscore
+}
+
+// Convert a table row to an object with normalized header keys
+function rowToObject(table, rowIndex) {
+  const obj = {};
+  const cols = table.cols; // array of {id, label, type}
+  const row = table.rows[rowIndex];
+  cols.forEach((col, i) => {
+    const rawLabel = (col && col.label) ? col.label.toString() : `col${i}`;
+    const key = normalizeHeader(rawLabel);
+    const cell = (row && row.c && row.c[i]) ? row.c[i].v : null;
+    obj[key] = cell;
+  });
+  return obj;
+}
+
+function showError(message) {
+  document.getElementById('loading-spinner').style.display = 'none';
+  const err = document.getElementById('error-message');
+  err.style.display = 'block';
+  err.innerText = message;
+}
+
+// Build dynamic paragraph(s) based on project_type
+function generateParagraph(project) {
+  const type = (project.project_type || '').toString().trim();
+  const code = project.project_code || project.projectcode || '';
+  const client = project.client_code || project.clientcode || '';
+  const title = project.project_title || project.projecttitle || '';
+  const patent = project.patent_number || project.patentnumber || '';
+  const product = project.product_mapped || project.productname || project.product_name || project.product || '';
+
+  // Normalize for matching
+  const t = type.toLowerCase();
+
+  // Templates from the user, filled with values
+  if (t.includes('patentability')) {
+    return `
+      <p>Thank you for collaborating with us on this Patentability Search project.<br>
+      Your insights help us assess the inventive step and novelty with accuracy.<br>
+      Please provide your feedback to help us improve our search strategies.</p>
+
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: Patentability Search<br>
+      Project Title: ${escapeHtml(title)}</p>
+
+      <p>Thank you for your valuable partnership.</p>
+    `;
+  } else if (t.includes('invalidation')) {
+    return `
+      <p>We appreciate the opportunity to support you in this Invalidation Search project.<br>
+      Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>
+
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: Invalidation Search<br>
+      Project Title: ${escapeHtml(title)}<br>
+      Patent Number: ${escapeHtml(patent)}</p>
+
+      <p>Thank you for trusting our expertise.</p>
+    `;
+  } else if (t.includes('infringement')) {
+    return `
+      <p>Thank you for working with us on this Infringement Study project.<br>
+      Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>
+
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: Infringement Study<br>
+      Project Title: ${escapeHtml(title)}<br>
+      Patent Number: ${escapeHtml(patent)}<br>
+      Product Name: ${escapeHtml(product)}</p>
+
+      <p>We appreciate your continued collaboration.</p>
+    `;
+  } else {
+    // Generic fallback
+    return `
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: ${escapeHtml(type || 'Unknown')}<br>
+      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}${product ? `<br>Product Name: ${escapeHtml(product)}` : ''}</p>
+    `;
+  }
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+async function loadProjectFromSheet() {
+  if (SHEET_ID === 'REPLACE_WITH_YOUR_SHEET_ID') {
+    // keep previous simulated content as fallback so page remains functional for testing
+    document.getElementById("project-name").innerText = "Project Name Example";
+    document.getElementById("project-paragraph").innerHTML = "<p>Client details loaded successfully.</p><p>Here is the full project description.</p>";
+    document.getElementById("loading-spinner").style.display = "none";
+    document.getElementById("feedback-container").style.display = "block";
+    return;
+  }
+
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+    const text = await res.text();
+    const json = parseGviz(text);
+    const table = json.table;
+
+    if (!table || !table.rows || table.rows.length === 0) {
+      showError('No project data found in the sheet.');
+      return;
+    }
+
+    // Choose a row: projectIndex or projectId (match Project Code)
+    const projectIndexParam = getQueryParam('projectIndex');
+    const projectIdParam = getQueryParam('projectId');
+
+    let chosenRowIndex = 0;
+    if (projectIndexParam !== null) {
+      const idx = parseInt(projectIndexParam, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < table.rows.length) {
+        chosenRowIndex = idx;
+      }
+    } else if (projectIdParam !== null) {
+      // find column index for project code (try normalized header matches)
+      const idColIndex = table.cols.findIndex(c => {
+        const label = (c.label || '').toString().toLowerCase().replace(/\s+/g,'');
+        return label === 'projectcode' || label === 'project_code' || label === 'projectcode' || label === 'projectid' || label === 'projectcode';
+      });
+      if (idColIndex >= 0) {
+        const found = table.rows.findIndex(r => {
+          const cell = r.c && r.c[idColIndex] ? r.c[idColIndex].v : null;
+          return String(cell) === projectIdParam;
+        });
+        if (found >= 0) chosenRowIndex = found;
+      } else {
+        // If Project Code header not found, search all cells for exact match
+        const foundAny = table.rows.findIndex(r => (r.c || []).some(c => (c && c.v) && String(c.v) === projectIdParam));
+        if (foundAny >= 0) chosenRowIndex = foundAny;
+      }
+    }
+
+    const project = rowToObject(table, chosenRowIndex);
+
+    // Use project title if present for heading
+    const heading = project.project_title || project.projecttitle || project.title || project.name || project.project_code || 'Unnamed Project';
+    document.getElementById("project-name").innerText = heading;
+
+    // Generate the dynamic paragraph based on project_type
+    const paragraphHtml = generateParagraph(project);
+
+    // If there's a generated_link field, append a link
+    const link = project.generated_link || project.generatedlink || project['generated_link'] || '';
+    const linkHtml = link ? `<p><a href="${escapeHtml(link)}" target="_blank">Open generated link</a></p>` : '';
+
+    document.getElementById("project-paragraph").innerHTML = paragraphHtml + linkHtml;
+
+    document.getElementById("loading-spinner").style.display = "none";
+    document.getElementById("feedback-container").style.display = "block";
+
+  } catch (err) {
+    console.error(err);
+    showError('Unable to fetch project data: ' + (err.message || err));
+  }
+}
+
+// Start
+loadProjectFromSheet();
 </script>
 
 </body>
