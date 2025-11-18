@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogicApt - Client Feedback Form</title>
+
+  <!-- BOOTSTRAP -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- ICONS -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f5f6fa;
+      color: #333;
+    }
+
+    a { text-decoration: none; }
+
+    /* TOP BAR */
+    .top-nav {
+      background: #000;
+      color: #fff;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #222;
+    }
+
+    .top-nav a {
+      color: #c8cdd6;
+      margin-right: 20px;
+    }
+
+    .circle-icon {
+      width: 28px;
+      height: 28px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 13px;
+      margin-left: 10px;
+    }
+o
+    /* HEADER */
+    header {
+      background: #fff;
+      padding: 15px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .logo { height: 70px; }
+
+    h1 {
+      color: #ff7f27;
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    /* CARD */
+    .form-card {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
+    }
+
+    /* Fade-in animation */
+    .fade-in {
+      opacity: 0;
+      animation: fadeIn 0.9s forwards ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* FIX: GAP BETWEEN HEADER & FIRST CARD */
+    .first-section {
+      margin-top: 40px;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #fff;
+      padding: 60px 0 30px 0;
+      border-top: 1px solid #ddd;
+      margin-top: 70px;
+    }
+
+    .footer-social a {
+      border: 2px solid #ff7f27;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 12px;
+      color: #ff7f27;
+      font-size: 17px;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      margin-top: 30px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<!-- TOP BAR -->
+<div class="top-nav">
+  <div class="container d-flex justify-content-between flex-wrap">
+
+    <div>
+      <a href="#"><i class="fa fa-question-circle"></i> FAQ</a>
+      <a href="https://www.google.com/maps/search/?api=1&query=A-40A Landmark Plaza Mohali" target="_blank">
+        <i class="fa fa-map-marker-alt"></i> A-40A, Landmark Plaza, Mohali
+      </a>
+    </div>
+
+    <div>
+      <a href="mailto:abhay@logicapt.com"><i class="fa fa-envelope"></i> abhay@logicapt.com</a>
+      <a href="tel:+14157278390"><i class="fa fa-phone"></i> +1 (415) 727 8390</a>
+
+      <a href="https://linkedin.com/company/logicapt"
+         target="_blank" class="circle-icon">
+        <i class="fa-brands fa-linkedin"></i>
+      </a>
+
+      <a href="https://instagram.com/logicaptinformatics/"
+         target="_blank" class="circle-icon">
+        <i class="fa-brands fa-instagram"></i>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="container d-flex align-items-center justify-content-between">
+    <img src="static/image-removebg-preview.png" class="logo" />
+    <h1>Client Feedback Form</h1>
+  </div>
+</header>
+
+<!-- PROJECT INFO -->
+<div class="container first-section">
+  <div class="form-card">
+    <h2 id="project-name" style="color:#ff7f27;">Loading Project...</h2>
+    <p id="project-details"></p>
+    <p id="project-paragraph"></p>
+
+    <div id="loading-spinner" class="text-center">
+      <p>Loading project details...</p>
+    </div>
+
+    <p id="error-message" style="display:none; color:red; text-align:center;"></p>
+  </div>
+</div>
+
+<!-- FEEDBACK FORM -->
+<div class="container">
+  <div id="feedback-container" class="form-card fade-in" style="display:none;">
+
+    <p>Thank you for your collaboration. Your feedback helps us improve our services.</p>
+
+    <form id="feedbackForm">
+      <div class="row mb-3">
+        <div class="col-md-4 fw-bold">Overall Rating:</div>
+        <div class="col-md-8">
+          <input type="radio" name="overallRating" value="1"> 1
+          <input type="radio" name="overallRating" value="2"> 2
+          <input type="radio" name="overallRating" value="3"> 3
+          <input type="radio" name="overallRating" value="4"> 4
+          <input type="radio" name="overallRating" value="5"> 5
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4 fw-bold">Quality of Service:</div>
+        <div class="col-md-8">
+          <input type="radio" name="qualityRating" value="1"> 1
+          <input type="radio" name="qualityRating" value="2"> 2
+          <input type="radio" name="qualityRating" value="3"> 3
+          <input type="radio" name="qualityRating" value="4"> 4
+          <input type="radio" name="qualityRating" value="5"> 5
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4 fw-bold">Timeliness:</div>
+        <div class="col-md-8">
+          <input type="radio" name="timelinessRating" value="1"> 1
+          <input type="radio" name="timelinessRating" value="2"> 2
+          <input type="radio" name="timelinessRating" value="3"> 3
+          <input type="radio" name="timelinessRating" value="4"> 4
+          <input type="radio" name="timelinessRating" value="5"> 5
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4 fw-bold">Communication:</div>
+        <div class="col-md-8">
+          <input type="radio" name="communicationRating" value="1"> 1
+          <input type="radio" name="communicationRating" value="2"> 2
+          <input type="radio" name="communicationRating" value="3"> 3
+          <input type="radio" name="communicationRating" value="4"> 4
+          <input type="radio" name="communicationRating" value="5"> 5
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-md-4 fw-bold">Value for Money:</div>
+        <div class="col-md-8">
+          <input type="radio" name="valueRating" value="1"> 1
+          <input type="radio" name="valueRating" value="2"> 2
+          <input type="radio" name="valueRating" value="3"> 3
+          <input type="radio" name="valueRating" value="4"> 4
+          <input type="radio" name="valueRating" value="5"> 5
+        </div>
+      </div>
+
+      <textarea name="comments" class="form-control mb-4"
+                placeholder="Additional comments..." rows="4"></textarea>
+
+      <button class="btn btn-warning px-4" style="background:#ff7f27; color:#fff;">
+        Submit Feedback
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- THANK YOU -->
+<div class="container">
+  <div id="thank-you-container" class="form-card text-center" style="display:none;">
+    <h2 style="color:#ff7f27;">Thank You for Your Feedback!</h2>
+    <p>Your input helps us improve our services.</p>
+
+    <p><strong>Total Submissions:</strong> <span id="total-submissions">Loading…</span></p>
+    <p><strong>Average Overall Rating:</strong> <span id="avg-rating">Loading…</span> / 5</p>
+
+    <button onclick="location.reload()" class="btn btn-warning px-4"
+            style="background:#ff7f27; color:#fff;">
+      Submit Another
+    </button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="row">
+
+      <!-- COLUMN 1 -->
+      <div class="col-md-4 mb-4">
+        <img src="static/image-removebg-preview.png" style="height:55px;" />
+        <h4 class="mt-3">Have a project?</h4>
+        <p>WE CAN HELP</p>
+        <p><a href="mailto:info@logicapt.com" style="color:#ff7f27;">info@logicapt.com</a></p>
+      </div>
+
+      <!-- COLUMN 2 -->
+      <div class="col-md-4 mb-4">
+        <h4>Our Office</h4>
+
+        <p><strong>ADDRESS</strong></p>
+        <p>
+          <a href="https://www.google.com/maps/search/?api=1&query=A-40A Landmark Plaza Mohali" target="_blank">
+        <i class="fa fa-map-marker-alt"></i>
+          LogicApt Informatics Pvt. Ltd.<br>
+          A-40A Landmark Plaza<br>
+          Phase VIII Extension<br>
+          Mohali - 160059 (Punjab), India
+        </a>
+        </p>
+
+        <p><strong>PHONE</strong></p>
+        <p><strong>India:</strong><br>
+          +91 (172) 5093683<br>
+          +91 97250 07842
+        </p>
+
+        <p><strong>USA:</strong><br>
+          +1 (415) 727 8390
+        </p>
+      </div>
+
+      <!-- COLUMN 3 -->
+      <div class="col-md-4 mb-4">
+        <h4>Find us on social media</h4>
+
+        <div class="footer-social mt-3">
+          <a href="https://linkedin.com/company/logicapt" target="_blank">
+            <i class="fa-brands fa-linkedin"></i>
+          </a>
+
+          <a href="https://instagram.com/logicaptinformatics/" target="_blank">
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+
+          <a href="https://logicapt.com" target="_blank">
+            <i class="fa fa-globe"></i>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      &copy; 2025 LogicApt. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<!-- BOOTSTRAP JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* SIMULATION OF PROJECT LOADING */
+setTimeout(() => {
+  document.getElementById("project-name").innerText = "Project Name Example";
+  document.getElementById("project-details").innerText = "Client details loaded successfully.";
+  document.getElementById("project-paragraph").innerText = "Here is the full project description.";
+
+  document.getElementById("loading-spinner").style.display = "none";
+  document.getElementById("feedback-container").style.display = "block";
+}, 1200);
+</script>
+
+</body>
+</html>
