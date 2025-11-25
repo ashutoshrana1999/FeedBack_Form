@@ -751,6 +751,7 @@ function displayProjectData(project) {
   document.getElementById('feedback-container').style.display = 'block';
 }
 
+// FIXED: Improved project type detection with common misspellings
 function generateProjectParagraph(project) {
   const type = (project.project_type || '').toString().trim();
   const code = project.project_code || project.projectcode || '';
@@ -761,11 +762,11 @@ function generateProjectParagraph(project) {
 
   console.log("Generating paragraph for project type:", type); // Debug log
 
-  // Normalize for matching - FIXED: More flexible matching
+  // Normalize for matching
   const t = type.toLowerCase();
   
-  // FIXED: More flexible project type detection
-  if (t.includes('patentability') || t.includes('patent') && t.includes('search')) {
+  // FIXED: Added "infringment" (misspelled version) to infringement detection
+  if (t.includes('patentability') || t.includes('patentibility') || t.includes('patent') && (t.includes('search') || t.includes('analysis'))) {
     return `
       <p>Thank you for collaborating with us on this Patentability Search project.<br>
       Your insights help us assess the inventive step and novelty with accuracy.<br>
@@ -775,11 +776,11 @@ function generateProjectParagraph(project) {
       Project Code: ${escapeHtml(code)}<br>
       Client Code: ${escapeHtml(client)}<br>
       Type: Patentability Search<br>
-      Project Title: ${escapeHtml(title)}</p>
+      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}</p>
 
       <p>Thank you for your valuable partnership.</p>
     `;
-  } else if (t.includes('invalidation') || t.includes('invalidity')) {
+  } else if (t.includes('invalidation') || t.includes('invalidity') || t.includes('opposition')) {
     return `
       <p>We appreciate the opportunity to support you in this Invalidation Search project.<br>
       Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>
@@ -793,7 +794,7 @@ function generateProjectParagraph(project) {
 
       <p>Thank you for trusting our expertise.</p>
     `;
-  } else if (t.includes('infringement') || t.includes('freedom') || t.includes('f-to-operate')) {
+  } else if (t.includes('infringement') || t.includes('infringment') || t.includes('freedom') || t.includes('f-to-operate') || t.includes('clearance')) {
     return `
       <p>Thank you for working with us on this Infringement Study project.<br>
       Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>
@@ -801,7 +802,7 @@ function generateProjectParagraph(project) {
       <p><strong>Project Details:</strong><br>
       Project Code: ${escapeHtml(code)}<br>
       Client Code: ${escapeHtml(client)}<br>
-      Type: Infringement Study<br>
+      Type: Infringement Search<br>
       Project Title: ${escapeHtml(title)}<br>
       Patent Number: ${escapeHtml(patent)}<br>
       Product Name: ${escapeHtml(product)}</p>
@@ -809,7 +810,7 @@ function generateProjectParagraph(project) {
       <p>We appreciate your continued collaboration.</p>
     `;
   } else {
-    // Generic fallback - FIXED: Show actual project type
+    // Generic fallback
     return `
       <p>Thank you for collaborating with us on this project.<br>
       Your feedback helps us improve our services and deliver better results.</p>
