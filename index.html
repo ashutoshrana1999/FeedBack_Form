@@ -530,6 +530,12 @@
 const SHEET_ID = '1yxn338O8GbNq-UDJiJDpcX4t7U8TNZYKnL99I-nJfyw';
 const SHEET_NAME = 'Project_Data';
 
+// Web App URL for submitting feedback (REPLACE WITH YOUR ACTUAL WEB APP URL)
+const WEB_APP_URL = 'https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec';
+
+// Global variable to store current project data
+let currentProjectData = {};
+
 // Utility Functions
 function getQueryParam(name) {
   const params = new URLSearchParams(window.location.search);
@@ -647,28 +653,71 @@ function validateForm() {
   return isValid;
 }
 
-// Form Submission
-async function submitFeedback(formData) {
+// Form Submission to Google Sheets
+async function submitFeedback(formData, projectData) {
   try {
     setLoadingState(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Prepare data for submission
+    const submissionData = {
+      timestamp: new Date().toISOString(),
+      project_code: projectData.project_code || projectData.projectcode || '',
+      client_code: projectData.client_code || projectData.clientcode || '',
+      overall_rating: formData.overallRating,
+      quality_rating: formData.qualityRating,
+      timeliness_rating: formData.timelinessRating,
+      communication_rating: formData.communicationRating,
+      value_rating: formData.valueRating,
+      comments: formData.comments || ''
+    };
     
+    console.log('Submitting feedback:', submissionData);
+    
+    // Submit to Google Apps Script Web App
+    const response = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(submissionData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      // Also store in localStorage for demo purposes
+      const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
+      storedFeedback.push({
+        ...submissionData,
+        project: document.getElementById('project-name').innerText
+      });
+      localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
+      
+      return { success: true, data: storedFeedback };
+    } else {
+      throw new Error(result.message || 'Failed to submit feedback');
+    }
+    
+  } catch (error) {
+    console.error('Submission error:', error);
+    
+    // Fallback to localStorage if web app fails
+    console.log('Using localStorage fallback...');
     const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
     const currentProject = document.getElementById('project-name').innerText;
     
-    storedFeedback.push({
+    const fallbackData = {
       ...formData,
       timestamp: new Date().toISOString(),
-      project: currentProject
-    });
+      project: currentProject,
+      project_code: projectData.project_code || projectData.projectcode || '',
+      client_code: projectData.client_code || projectData.clientcode || ''
+    };
     
+    storedFeedback.push(fallbackData);
     localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
     
-    return { success: true, data: storedFeedback };
-  } catch (error) {
-    console.error('Submission error:', error);
-    throw new Error('Failed to submit feedback. Please try again.');
+    return { success: true, data: storedFeedback, fallback: true };
   } finally {
     setLoadingState(false);
   }
@@ -806,6 +855,9 @@ function displayProjectData(project) {
   // Generate the dynamic paragraph based on project_type
   const paragraphHtml = generateProjectParagraph(project);
 
+  // Store project data for form submission
+  currentProjectData = project;
+
   // NO LINK IS ADDED HERE - The "View Project Details" link is completely removed
   projectParagraphEl.innerHTML = paragraphHtml;
   
@@ -900,8 +952,8 @@ function showThankYouPage() {
   let validRatings = 0;
   
   storedFeedback.forEach(feedback => {
-    if (feedback.overallRating) {
-      totalRating += parseInt(feedback.overallRating);
+    if (feedback.overall_rating) {
+      totalRating += parseInt(feedback.overall_rating);
       validRatings++;
     }
   });
@@ -942,10 +994,13 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     try {
-      await submitFeedback(formData);
+      const result = await submitFeedback(formData, currentProjectData);
+      if (result.fallback) {
+        console.log('Feedback saved to localStorage (fallback mode)');
+      }
       showThankYouPage();
     } catch (error) {
-      alert(error.message);
+      alert('Error submitting feedback: ' + error.message);
     }
   });
   
