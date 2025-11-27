@@ -527,8 +527,8 @@
 
 <script>
 // Configuration - Replace with your Google Sheets ID
-const SHEET_ID = '1yxn338O8GbNq-UDJiJDpcX4t7U8TNZYKnL99I-nJfyw'; // Replace with your actual Sheet ID
-const SHEET_NAME = 'Project_Data'; // Replace with your actual sheet name
+const SHEET_ID = '1yxn338O8GbNq-UDJiJDpcX4t7U8TNZYKnL99I-nJfyw';
+const SHEET_NAME = 'Project_Data';
 
 // Utility Functions
 function getQueryParam(name) {
@@ -597,59 +597,20 @@ function rowToObject(table, rowIndex) {
   return obj;
 }
 
-// Remove any columns that represent generated links so they are never mapped or used
-function removeSensitiveColumns(table) {
-  if (!table || !table.cols) return table;
-
-  // header names to strip (normalized)
-  const sensitiveHeaders = [
-    'generated_link', 'generatedlink', 'generated-link',
-    'generated url', 'generated_url', 'generatedurl',
-    'link', 'url', 'project_link', 'download_link', 'downloadlink'
-  ].map(h => normalizeHeader(h));
-
-  // determine indexes to remove
-  const removeIndexes = [];
-  table.cols.forEach((c, i) => {
-    const lbl = normalizeHeader(c.label);
-    // remove if header explicitly contains link/url or any of the sensitive headers
-    if (sensitiveHeaders.some(sh => lbl.includes(sh) || lbl === sh) || lbl.includes('link') || lbl.includes('url')) {
-      removeIndexes.push(i);
-    }
-  });
-
-  if (removeIndexes.length === 0) return table;
-
-  // build new cols and rows without the sensitive indexes
-  const newCols = table.cols.filter((c, i) => !removeIndexes.includes(i));
-  const newRows = (table.rows || []).map(r => {
-    const cells = r.c || [];
-    const newCells = cells.filter((cell, i) => !removeIndexes.includes(i));
-    return Object.assign({}, r, { c: newCells });
-  });
-
-  return { cols: newCols, rows: newRows };
-}
-
-// Remove any properties on project object that look like a link (by key or value)
-function sanitizeProjectObject(project) {
-  if (!project || typeof project !== 'object') return project;
-  const urlLike = /^https?:\/\//i;
-  Object.keys(project).forEach(k => {
-    const lk = k.toLowerCase();
-    const val = project[k];
-    // remove keys that contain link/url or generated
-    if (lk.includes('link') || lk.includes('url') || lk.includes('generated')) {
-      delete project[k];
-      return;
-    }
-    // remove values that are HTTP/HTTPS URLs
-    if (typeof val === 'string' && urlLike.test(val.trim())) {
-      delete project[k];
-      return;
-    }
-  });
-  return project;
+// Parse the p parameter to extract client and project codes
+function parseProjectFromUrl() {
+  const pParam = getQueryParam('p');
+  if (!pParam) return null;
+  
+  // Expected format: /2535549/1111111
+  const parts = pParam.split('/').filter(part => part.trim() !== '');
+  if (parts.length >= 2) {
+    return {
+      clientCode: parts[0],
+      projectCode: parts[1]
+    };
+  }
+  return null;
 }
 
 // Form Validation
@@ -718,68 +679,86 @@ async function loadProjectFromSheet() {
     if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
     const text = await res.text();
     const json = parseGviz(text);
-    let table = json.table;
+    const table = json.table;
 
     if (!table || !table.rows || table.rows.length === 0) {
       showError('No project data found in the sheet.');
       return;
     }
 
-    // Remove any columns that could contain generated links so they won't be available in the app
-    table = removeSensitiveColumns(table);
-
-    // Choose a row based on URL parameters
-    const projectIndexParam = getQueryParam('projectIndex');
-    const projectIdParam = getQueryParam('projectId');
-
+    // Try to find project using the p parameter first
+    const urlProject = parseProjectFromUrl();
     let chosenRowIndex = 0;
-    if (projectIndexParam !== null) {
-      const idx = parseInt(projectIndexParam, 10);
-      if (!isNaN(idx) && idx >= 0 && idx < table.rows.length) {
-        chosenRowIndex = idx;
-      }
-    } else if (projectIdParam !== null) {
-      // Find project by project code - robust search across header variants
+
+    if (urlProject) {
+      // Find project by client code and project code from URL
       let found = -1;
       
-      const possibleHeaders = ['projectcode', 'project_code', 'projectid', 'id', 'code'];
+      // Find client code column
+      const clientCodeColIndex = table.cols.findIndex(c => {
+        const label = normalizeHeader(c.label);
+        return ['client_code', 'clientcode', 'client'].includes(label);
+      });
       
-      for (let header of possibleHeaders) {
-        const colIndex = table.cols.findIndex(c => {
-          const label = normalizeHeader(c.label);
-          return label === header;
+      // Find project code column  
+      const projectCodeColIndex = table.cols.findIndex(c => {
+        const label = normalizeHeader(c.label);
+        return ['project_code', 'projectcode', 'project'].includes(label);
+      });
+      
+      if (clientCodeColIndex >= 0 && projectCodeColIndex >= 0) {
+        found = table.rows.findIndex(r => {
+          const clientCell = r.c && r.c[clientCodeColIndex] ? String(r.c[clientCodeColIndex].v) : '';
+          const projectCell = r.c && r.c[projectCodeColIndex] ? String(r.c[projectCodeColIndex].v) : '';
+          return clientCell === urlProject.clientCode && projectCell === urlProject.projectCode;
         });
-        
-        if (colIndex >= 0) {
-          found = table.rows.findIndex(r => {
-            const cell = r.c && r.c[colIndex] ? r.c[colIndex].v : null;
-            return String(cell).toLowerCase() === projectIdParam.toLowerCase();
-          });
-          if (found >= 0) break;
+      }
+      
+      if (found >= 0) {
+        chosenRowIndex = found;
+        console.log("Found project via URL:", urlProject);
+      } else {
+        showError('Project not found. Please check the URL parameters.');
+        return;
+      }
+    } else {
+      // Fallback to old URL parameters if p parameter is not present
+      const projectIndexParam = getQueryParam('projectIndex');
+      const projectIdParam = getQueryParam('projectId');
+
+      if (projectIndexParam !== null) {
+        const idx = parseInt(projectIndexParam, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < table.rows.length) {
+          chosenRowIndex = idx;
         }
+      } else if (projectIdParam !== null) {
+        let found = -1;
+        const possibleHeaders = ['projectcode', 'project_code', 'projectid', 'id', 'code'];
+        
+        for (let header of possibleHeaders) {
+          const colIndex = table.cols.findIndex(c => {
+            const label = normalizeHeader(c.label);
+            return label === header;
+          });
+          
+          if (colIndex >= 0) {
+            found = table.rows.findIndex(r => {
+              const cell = r.c && r.c[colIndex] ? r.c[colIndex].v : null;
+              return String(cell).toLowerCase() === projectIdParam.toLowerCase();
+            });
+            if (found >= 0) break;
+          }
+        }
+        
+        if (found >= 0) chosenRowIndex = found;
       }
-      
-      // If still not found, search all columns
-      if (found === -1) {
-        found = table.rows.findIndex(r => 
-          (r.c || []).some(c => 
-            c && c.v && String(c.v).toLowerCase() === projectIdParam.toLowerCase()
-          )
-        );
-      }
-      
-      if (found >= 0) chosenRowIndex = found;
     }
 
     const project = rowToObject(table, chosenRowIndex);
-
-    // Sanitize: remove any remaining link/url-like properties from the mapped object
-    sanitizeProjectObject(project);
-
-    console.log("Loaded project (sanitized):", project); // Debug log
+    console.log("Loaded project:", project);
     
-    // If no project found (basic check), show error
-    if (!project.project_type && !project.project_title && !project.title && !project.name && !project.project_code) {
+    // If no project found, show error
+    if (!project.project_type && !project.project_title) {
       showError('Project not found. Please check the project ID.');
       return;
     }
@@ -803,13 +782,14 @@ function displayProjectData(project) {
   // Generate the dynamic paragraph based on project_type
   const paragraphHtml = generateProjectParagraph(project);
 
-  // IMPORTANT: Do NOT append any link. Links are stripped at parsing time and sanitized
+  // NO LINK IS ADDED HERE - The "View Project Details" link is completely removed
   projectParagraphEl.innerHTML = paragraphHtml;
+  
   document.getElementById('loading-spinner').style.display = 'none';
   document.getElementById('feedback-container').style.display = 'block';
 }
 
-// FIXED: Improved project type detection with common misspellings
+// Generate project paragraph content
 function generateProjectParagraph(project) {
   const type = (project.project_type || '').toString().trim();
   const code = project.project_code || project.projectcode || '';
@@ -818,12 +798,9 @@ function generateProjectParagraph(project) {
   const patent = project.patent_number || project.patentnumber || '';
   const product = project.product_mapped || project.productname || project.product_name || project.product || '';
 
-  console.log("Generating paragraph for project type:", type); // Debug log
-
   // Normalize for matching
   const t = type.toLowerCase();
   
-  // FIXED: Added "infringment" (misspelled version) to infringement detection
   if (t.includes('patentability') || t.includes('patentibility') || (t.includes('patent') && (t.includes('search') || t.includes('analysis')))) {
     return `
       <p>Thank you for collaborating with us on this Patentability Search project.<br>
@@ -884,15 +861,13 @@ function generateProjectParagraph(project) {
   }
 }
 
-// Thank You Page - FIXED: Now properly shows statistics
+// Thank You Page
 function showThankYouPage() {
   document.getElementById('feedback-container').style.display = 'none';
   
   // Calculate stats from stored feedback
   const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
   const totalSubmissions = storedFeedback.length;
-  
-  console.log("Total submissions found:", totalSubmissions); // Debug log
   
   // Calculate average overall rating
   let totalRating = 0;
