@@ -612,7 +612,10 @@ function removeSensitiveColumns(table) {
   const removeIndexes = [];
   table.cols.forEach((c, i) => {
     const lbl = normalizeHeader(c.label);
-    if (sensitiveHeaders.includes(lbl)) removeIndexes.push(i);
+    // remove if header explicitly contains link/url or any of the sensitive headers
+    if (sensitiveHeaders.some(sh => lbl.includes(sh) || lbl === sh) || lbl.includes('link') || lbl.includes('url')) {
+      removeIndexes.push(i);
+    }
   });
 
   if (removeIndexes.length === 0) return table;
@@ -626,6 +629,27 @@ function removeSensitiveColumns(table) {
   });
 
   return { cols: newCols, rows: newRows };
+}
+
+// Remove any properties on project object that look like a link (by key or value)
+function sanitizeProjectObject(project) {
+  if (!project || typeof project !== 'object') return project;
+  const urlLike = /^https?:\/\//i;
+  Object.keys(project).forEach(k => {
+    const lk = k.toLowerCase();
+    const val = project[k];
+    // remove keys that contain link/url or generated
+    if (lk.includes('link') || lk.includes('url') || lk.includes('generated')) {
+      delete project[k];
+      return;
+    }
+    // remove values that are HTTP/HTTPS URLs
+    if (typeof val === 'string' && urlLike.test(val.trim())) {
+      delete project[k];
+      return;
+    }
+  });
+  return project;
 }
 
 // Form Validation
@@ -748,10 +772,14 @@ async function loadProjectFromSheet() {
     }
 
     const project = rowToObject(table, chosenRowIndex);
-    console.log("Loaded project:", project); // Debug log
+
+    // Sanitize: remove any remaining link/url-like properties from the mapped object
+    sanitizeProjectObject(project);
+
+    console.log("Loaded project (sanitized):", project); // Debug log
     
-    // If no project found, show error
-    if (!project.project_type && !project.project_title) {
+    // If no project found (basic check), show error
+    if (!project.project_type && !project.project_title && !project.title && !project.name && !project.project_code) {
       showError('Project not found. Please check the project ID.');
       return;
     }
@@ -775,9 +803,7 @@ function displayProjectData(project) {
   // Generate the dynamic paragraph based on project_type
   const paragraphHtml = generateProjectParagraph(project);
 
-  // NOTE: intentionally do NOT read or display any generated link.
-  // The code explicitly strips link columns before mapping (see removeSensitiveColumns),
-  // and here we do not append any link to the page.
+  // IMPORTANT: Do NOT append any link. Links are stripped at parsing time and sanitized
   projectParagraphEl.innerHTML = paragraphHtml;
   document.getElementById('loading-spinner').style.display = 'none';
   document.getElementById('feedback-container').style.display = 'block';
