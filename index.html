@@ -602,8 +602,15 @@ function parseProjectFromUrl() {
   const pParam = getQueryParam('p');
   if (!pParam) return null;
   
+  console.log("p parameter found:", pParam);
+  
   // Expected format: /2535549/1111111
-  const parts = pParam.split('/').filter(part => part.trim() !== '');
+  // Remove leading and trailing slashes and split
+  const cleanParam = pParam.replace(/^\/+|\/+$/g, '');
+  const parts = cleanParam.split('/').filter(part => part.trim() !== '');
+  
+  console.log("Parsed parts:", parts);
+  
   if (parts.length >= 2) {
     return {
       clientCode: parts[0],
@@ -645,8 +652,6 @@ async function submitFeedback(formData) {
   try {
     setLoadingState(true);
     
-    // In production, this would send to a secure server endpoint
-    // For demo, we'll store in localStorage
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
@@ -688,9 +693,11 @@ async function loadProjectFromSheet() {
 
     // Try to find project using the p parameter first
     const urlProject = parseProjectFromUrl();
-    let chosenRowIndex = 0;
+    let chosenRowIndex = -1;
 
     if (urlProject) {
+      console.log("Looking for project with:", urlProject);
+      
       // Find project by client code and project code from URL
       let found = -1;
       
@@ -706,19 +713,26 @@ async function loadProjectFromSheet() {
         return ['project_code', 'projectcode', 'project'].includes(label);
       });
       
+      console.log("Client code column index:", clientCodeColIndex);
+      console.log("Project code column index:", projectCodeColIndex);
+      
       if (clientCodeColIndex >= 0 && projectCodeColIndex >= 0) {
         found = table.rows.findIndex(r => {
           const clientCell = r.c && r.c[clientCodeColIndex] ? String(r.c[clientCodeColIndex].v) : '';
           const projectCell = r.c && r.c[projectCodeColIndex] ? String(r.c[projectCodeColIndex].v) : '';
+          
+          console.log(`Checking row - Client: "${clientCell}", Project: "${projectCell}"`);
+          console.log(`Looking for - Client: "${urlProject.clientCode}", Project: "${urlProject.projectCode}"`);
+          
           return clientCell === urlProject.clientCode && projectCell === urlProject.projectCode;
         });
       }
       
       if (found >= 0) {
         chosenRowIndex = found;
-        console.log("Found project via URL:", urlProject);
+        console.log("Found project at row index:", chosenRowIndex);
       } else {
-        showError('Project not found. Please check the URL parameters.');
+        showError(`Project not found for Client Code: ${urlProject.clientCode} and Project Code: ${urlProject.projectCode}. Please check the URL parameters.`);
         return;
       }
     } else {
@@ -751,15 +765,25 @@ async function loadProjectFromSheet() {
         }
         
         if (found >= 0) chosenRowIndex = found;
+      } else {
+        // If no parameters, show first project
+        chosenRowIndex = 0;
       }
+    }
+
+    // If no project found and no parameters, show error
+    if (chosenRowIndex === -1) {
+      showError('No project specified. Please use a valid project URL.');
+      return;
     }
 
     const project = rowToObject(table, chosenRowIndex);
     console.log("Loaded project:", project);
     
-    // If no project found, show error
-    if (!project.project_type && !project.project_title) {
-      showError('Project not found. Please check the project ID.');
+    // Enhanced project validation
+    const hasProjectData = project.project_type || project.project_title || project.title || project.name || project.project_code;
+    if (!hasProjectData) {
+      showError('Project data not found or incomplete. Please check the project parameters.');
       return;
     }
     
@@ -797,6 +821,8 @@ function generateProjectParagraph(project) {
   const title = project.project_title || project.projecttitle || '';
   const patent = project.patent_number || project.patentnumber || '';
   const product = project.product_mapped || project.productname || project.product_name || project.product || '';
+
+  console.log("Generating paragraph for project type:", type);
 
   // Normalize for matching
   const t = type.toLowerCase();
