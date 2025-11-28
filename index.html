@@ -529,9 +529,6 @@
 // Configuration - Web App URL for fetching project data
 const PROJECT_DATA_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw7v9uappRW17ish0rJjkeLMHEwkGUP6UrvP2UGs4VbjgkW5Cb0g0ZEcIN49NX93Q/exec';
 
-// Web App URL for submitting feedback (for future use)
-const FEEDBACK_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwIn5Ima-axKANo-9VdxNGyOjFpzExWHUqFV8pFPKoBGVR1e9wH_z8wPhfjBf0xFfw/exec';
-
 // Global variable to store current project data
 let currentProjectData = {};
 
@@ -574,26 +571,36 @@ function setLoadingState(loading) {
   }
 }
 
-// Parse the p parameter to extract client and project codes
-function parseProjectFromUrl() {
+// Parse the URL to extract project code
+function getProjectCodeFromUrl() {
+  // Try multiple URL parameter options
   const pParam = getQueryParam('p');
-  if (!pParam) return null;
+  const projectParam = getQueryParam('project');
+  const projectCodeParam = getQueryParam('projectCode');
   
-  console.log("p parameter found:", pParam);
+  console.log("URL Parameters found:", { p: pParam, project: projectParam, projectCode: projectCodeParam });
   
-  // Expected format: /2535549/1111111
-  // Remove leading and trailing slashes and split
-  const cleanParam = pParam.replace(/^\/+|\/+$/g, '');
-  const parts = cleanParam.split('/').filter(part => part.trim() !== '');
-  
-  console.log("Parsed parts:", parts);
-  
-  if (parts.length >= 2) {
-    return {
-      clientCode: parts[0],
-      projectCode: parts[1]
-    };
+  // Priority: projectCode > project > p
+  if (projectCodeParam) {
+    return projectCodeParam;
   }
+  
+  if (projectParam) {
+    return projectParam;
+  }
+  
+  if (pParam) {
+    // Expected format: /2535549/1111111 or just the project code
+    const cleanParam = pParam.replace(/^\/+|\/+$/g, '');
+    const parts = cleanParam.split('/').filter(part => part.trim() !== '');
+    
+    if (parts.length >= 2) {
+      return parts[1]; // Return project code (second part)
+    } else if (parts.length === 1) {
+      return parts[0]; // Return the single part as project code
+    }
+  }
+  
   return null;
 }
 
@@ -626,16 +633,18 @@ function validateForm() {
 
 // Project Data Loading from Web App
 async function loadProjectFromWebApp() {
-  const urlProject = parseProjectFromUrl();
+  const projectCode = getProjectCodeFromUrl();
   
-  if (!urlProject) {
-    showError('No project specified in URL. Please use a valid project URL with the "p" parameter (format: ?p=/clientCode/projectCode).');
+  if (!projectCode) {
+    showError('No project code specified in URL. Please use a valid project URL with project code parameter.');
     return;
   }
 
+  console.log("Using project code:", projectCode);
+
   try {
     // Build the URL with project parameter for the web app
-    const url = `${PROJECT_DATA_WEB_APP_URL}?project=${encodeURIComponent(urlProject.projectCode)}`;
+    const url = `${PROJECT_DATA_WEB_APP_URL}?project=${encodeURIComponent(projectCode)}`;
     console.log("Fetching project data from:", url);
     
     const response = await fetch(url);
@@ -644,7 +653,16 @@ async function loadProjectFromWebApp() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const projectData = await response.json();
+    const text = await response.text();
+    console.log("Raw response:", text);
+    
+    let projectData;
+    try {
+      projectData = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      throw new Error('Invalid JSON response from server');
+    }
     
     if (projectData.error) {
       showError(`Error: ${projectData.error}`);
@@ -656,7 +674,7 @@ async function loadProjectFromWebApp() {
     
   } catch (error) {
     console.error('Error fetching project data:', error);
-    showError('Unable to fetch project data. Please check the project URL and try again.', true);
+    showError('Unable to fetch project data: ' + error.message + '. Please check the project URL and try again.', true);
   }
 }
 
@@ -664,11 +682,19 @@ function displayProjectData(project) {
   const projectNameEl = document.getElementById('project-name');
   const projectParagraphEl = document.getElementById('project-paragraph');
   
-  // Use project title if present for heading
-  const heading = project.Title || project["Project Title"] || project["Project Code"] || 'Unnamed Project';
+  // Use available project titles in order of priority
+  const heading = project.Title || 
+                  project["Project Title"] || 
+                  project["Project Name"] || 
+                  project.projectTitle ||
+                  project.projectName ||
+                  project["Project Code"] || 
+                  project.projectCode || 
+                  'Project Details';
+  
   projectNameEl.textContent = heading;
 
-  // Generate the dynamic paragraph based on project_type
+  // Generate the dynamic paragraph
   const paragraphHtml = generateProjectParagraph(project);
 
   // Store project data for form submission
@@ -682,73 +708,77 @@ function displayProjectData(project) {
 
 // Generate project paragraph content
 function generateProjectParagraph(project) {
-  const type = (project["Project Type"] || project.projectType || '').toString().trim();
-  const code = project["Project Code"] || project.projectCode || '';
-  const client = project["Client Code"] || project.clientCode || '';
-  const title = project.Title || project["Project Title"] || '';
-  const patent = project["Patent Number"] || project.patentNumber || '';
-  const product = project["Product Name"] || project.productName || '';
+  // Try multiple field name variations
+  const type = project["Project Type"] || project.projectType || project.type || '';
+  const code = project["Project Code"] || project.projectCode || project.code || '';
+  const client = project["Client Code"] || project.clientCode || project.client || '';
+  const title = project.Title || project["Project Title"] || project.projectTitle || project.title || '';
+  const patent = project["Patent Number"] || project.patentNumber || project.patent || '';
+  const product = project["Product Name"] || project.productName || project.product || '';
 
-  console.log("Generating paragraph for project type:", type);
+  console.log("Generating paragraph for project:", { type, code, client, title, patent, product });
 
-  // Use the projectParagraph from the web app if available
+  // Use custom paragraph if available from web app
   if (project.projectParagraph && project.projectParagraph !== "No paragraph available for this project type.") {
     return `
       <p>${project.projectParagraph}</p>
       
       <p><strong>Project Details:</strong><br>
-      Project Code: ${escapeHtml(code)}<br>
-      Client Code: ${escapeHtml(client)}<br>
-      Type: ${escapeHtml(type || 'Unknown')}<br>
-      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}${product ? `<br>Product Name: ${escapeHtml(product)}` : ''}</p>
+      ${code ? `Project Code: ${escapeHtml(code)}<br>` : ''}
+      ${client ? `Client Code: ${escapeHtml(client)}<br>` : ''}
+      ${type ? `Type: ${escapeHtml(type)}<br>` : ''}
+      ${title ? `Project Title: ${escapeHtml(title)}<br>` : ''}
+      ${patent ? `Patent Number: ${escapeHtml(patent)}<br>` : ''}
+      ${product ? `Product Name: ${escapeHtml(product)}` : ''}</p>
 
       <p>Thank you for your valuable partnership.</p>
     `;
   }
 
-  // Normalize for matching
-  const t = type.toLowerCase();
+  // Normalize type for matching
+  const t = (type || '').toString().toLowerCase();
   
-  if (t.includes('patentability') || t.includes('patentibility') || (t.includes('patent') && (t.includes('search') || t.includes('analysis')))) {
+  if (t.includes('patentability')) {
     return `
       <p>Thank you for collaborating with us on this Patentability Search project.<br>
       Your insights help us assess the inventive step and novelty with accuracy.<br>
       Please provide your feedback to help us improve our search strategies.</p>
 
       <p><strong>Project Details:</strong><br>
-      Project Code: ${escapeHtml(code)}<br>
-      Client Code: ${escapeHtml(client)}<br>
+      ${code ? `Project Code: ${escapeHtml(code)}<br>` : ''}
+      ${client ? `Client Code: ${escapeHtml(client)}<br>` : ''}
       Type: Patentability Search<br>
-      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}</p>
+      ${title ? `Project Title: ${escapeHtml(title)}<br>` : ''}
+      ${patent ? `Patent Number: ${escapeHtml(patent)}` : ''}</p>
 
       <p>Thank you for your valuable partnership.</p>
     `;
-  } else if (t.includes('invalidation') || t.includes('invalidity') || t.includes('opposition')) {
+  } else if (t.includes('invalidation')) {
     return `
       <p>We appreciate the opportunity to support you in this Invalidation Search project.<br>
       Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>
 
       <p><strong>Project Details:</strong><br>
-      Project Code: ${escapeHtml(code)}<br>
-      Client Code: ${escapeHtml(client)}<br>
+      ${code ? `Project Code: ${escapeHtml(code)}<br>` : ''}
+      ${client ? `Client Code: ${escapeHtml(client)}<br>` : ''}
       Type: Invalidation Search<br>
-      Project Title: ${escapeHtml(title)}<br>
-      Patent Number: ${escapeHtml(patent)}</p>
+      ${title ? `Project Title: ${escapeHtml(title)}<br>` : ''}
+      ${patent ? `Patent Number: ${escapeHtml(patent)}` : ''}</p>
 
       <p>Thank you for trusting our expertise.</p>
     `;
-  } else if (t.includes('infringement') || t.includes('infringment') || t.includes('freedom') || t.includes('f-to-operate') || t.includes('clearance')) {
+  } else if (t.includes('infringement') || t.includes('freedom') || t.includes('fto')) {
     return `
       <p>Thank you for working with us on this Infringement Study project.<br>
       Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>
 
       <p><strong>Project Details:</strong><br>
-      Project Code: ${escapeHtml(code)}<br>
-      Client Code: ${escapeHtml(client)}<br>
+      ${code ? `Project Code: ${escapeHtml(code)}<br>` : ''}
+      ${client ? `Client Code: ${escapeHtml(client)}<br>` : ''}
       Type: Infringement Study<br>
-      Project Title: ${escapeHtml(title)}<br>
-      Patent Number: ${escapeHtml(patent)}<br>
-      Product Name: ${escapeHtml(product)}</p>
+      ${title ? `Project Title: ${escapeHtml(title)}<br>` : ''}
+      ${patent ? `Patent Number: ${escapeHtml(patent)}<br>` : ''}
+      ${product ? `Product Name: ${escapeHtml(product)}` : ''}</p>
 
       <p>We appreciate your continued collaboration.</p>
     `;
@@ -759,10 +789,12 @@ function generateProjectParagraph(project) {
       Your feedback helps us improve our services and deliver better results.</p>
       
       <p><strong>Project Details:</strong><br>
-      Project Code: ${escapeHtml(code)}<br>
-      Client Code: ${escapeHtml(client)}<br>
-      Type: ${escapeHtml(type || 'Unknown')}<br>
-      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}${product ? `<br>Product Name: ${escapeHtml(product)}` : ''}</p>
+      ${code ? `Project Code: ${escapeHtml(code)}<br>` : ''}
+      ${client ? `Client Code: ${escapeHtml(client)}<br>` : ''}
+      ${type ? `Type: ${escapeHtml(type)}<br>` : ''}
+      ${title ? `Project Title: ${escapeHtml(title)}<br>` : ''}
+      ${patent ? `Patent Number: ${escapeHtml(patent)}<br>` : ''}
+      ${product ? `Product Name: ${escapeHtml(product)}` : ''}</p>
 
       <p>Thank you for your valuable partnership.</p>
     `;
@@ -823,8 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
       comments: document.getElementById('comments').value
     };
     
-    // For now, just store in localStorage and show thank you page
-    // You'll add the actual submission logic later
+    // Store in localStorage and show thank you page
     try {
       const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
       const currentProject = document.getElementById('project-name').innerText;
