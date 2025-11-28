@@ -1,537 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LogicApt - Client Feedback Form</title>
-
-  <!-- BOOTSTRAP -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- ICONS -->
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <style>
-    :root {
-      --primary-color: #ff7f27;
-      --secondary-color: #333;
-      --background-color: #f5f6fa;
-      --card-shadow: 0 3px 8px rgba(0,0,0,0.08);
-    }
-    
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background-color: var(--background-color);
-      color: var(--secondary-color);
-    }
-
-    a { text-decoration: none; }
-
-    /* TOP BAR */
-    .top-nav {
-      background: #000;
-      color: #fff;
-      padding: 8px 0;
-      font-size: 14px;
-      border-bottom: 1px solid #222;
-    }
-
-    .top-nav a {
-      color: #c8cdd6;
-      margin-right: 20px;
-      transition: color 0.3s;
-    }
-    
-    .top-nav a:hover {
-      color: #fff;
-    }
-
-    .circle-icon {
-      width: 28px;
-      height: 28px;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      color: #fff;
-      font-size: 13px;
-      margin-left: 10px;
-      transition: all 0.3s;
-    }
-    
-    .circle-icon:hover {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-
-    /* HEADER */
-    header {
-      background: #fff;
-      padding: 15px 0;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    .logo { height: 70px; }
-
-    h1 {
-      color: var(--primary-color);
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    /* CARD */
-    .form-card {
-      background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: var(--card-shadow);
-      margin-bottom: 30px;
-    }
-
-    /* Fade-in animation */
-    .fade-in {
-      opacity: 0;
-      animation: fadeIn 0.9s forwards ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* FIX: GAP BETWEEN HEADER & FIRST CARD */
-    .first-section {
-      margin-top: 40px;
-    }
-
-    /* Form Styles */
-    .rating-group {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-    
-    .form-check-inline {
-      margin-right: 0;
-    }
-    
-    .form-check-input:checked {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-    
-    .form-check-label {
-      margin-left: 5px;
-    }
-    
-    .error-message {
-      color: #dc3545;
-      font-size: 0.875em;
-      margin-top: 5px;
-      display: none;
-    }
-    
-    .form-control:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 0.25rem rgba(255, 127, 39, 0.25);
-    }
-    
-    .btn-primary {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-    
-    .btn-primary:hover, .btn-primary:focus {
-      background-color: #e67322;
-      border-color: #e67322;
-    }
-    
-    .loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* FOOTER */
-    footer {
-      background: #fff;
-      padding: 60px 0 30px 0;
-      border-top: 1px solid #ddd;
-      margin-top: 70px;
-    }
-
-    .footer-social a {
-      border: 2px solid var(--primary-color);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      margin-right: 12px;
-      color: var(--primary-color);
-      font-size: 17px;
-      transition: all 0.3s;
-    }
-    
-    .footer-social a:hover {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    .footer-bottom {
-      text-align: center;
-      margin-top: 30px;
-      color: #666;
-      font-size: 14px;
-    }
-    
-    /* Mobile Responsiveness */
-    @media (max-width: 768px) {
-      .form-card {
-        padding: 20px 15px;
-      }
-      
-      .col-md-4.fw-bold {
-        margin-bottom: 10px;
-      }
-      
-      .rating-group {
-        gap: 10px;
-      }
-      
-      footer {
-        padding: 40px 0 20px 0;
-        margin-top: 50px;
-      }
-    }
-  </style>
-
-</head>
-
-<body>
-
-<!-- TOP BAR -->
-<div class="top-nav">
-  <div class="container d-flex justify-content-between flex-wrap">
-
-    <div>
-      <a href="#"><i class="fa fa-question-circle"></i> FAQ</a>
-      <a href="https://www.google.com/maps/search/?api=1&query=A-40A Landmark Plaza Mohali" target="_blank">
-        <i class="fa fa-map-marker-alt"></i> A-40A, Landmark Plaza, Mohali
-      </a>
-    </div>
-
-    <div>
-      <a href="mailto:abhay@logicapt.com"><i class="fa fa-envelope"></i> abhay@logicapt.com</a>
-      <a href="tel:+14157278390"><i class="fa fa-phone"></i> +1 (415) 727 8390</a>
-
-      <a href="https://linkedin.com/company/logicapt"
-         target="_blank" class="circle-icon">
-        <i class="fa-brands fa-linkedin"></i>
-      </a>
-
-      <a href="https://instagram.com/logicaptinformatics/"
-         target="_blank" class="circle-icon">
-        <i class="fa-brands fa-instagram"></i>
-      </a>
-    </div>
-
-  </div>
-</div>
-
-<!-- HEADER -->
-<header>
-  <div class="container d-flex align-items-center justify-content-between">
-    <img src="https://raw.githubusercontent.com/ashutoshrana1999/FeedBack_Form/refs/heads/main/image-removebg-preview.png" class="logo" alt="LogicApt Logo" />
-    <h1>Client Feedback Form</h1>
-  </div>
-</header>
-
-<!-- PROJECT INFO -->
-<div class="container first-section">
-  <div class="form-card">
-    <h2 id="project-name" style="color:#ff7f27;">Loading Project...</h2>
-    <div id="project-paragraph"></div>
-
-    <div id="loading-spinner" class="text-center">
-      <div class="spinner-border text-warning" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-2">Loading project details...</p>
-    </div>
-
-    <p id="error-message" style="display:none; color:red; text-align:center;"></p>
-  </div>
-</div>
-
-<!-- FEEDBACK FORM -->
-<div class="container">
-  <div id="feedback-container" class="form-card fade-in" style="display:none;">
-
-    <p>Thank you for your collaboration. Your feedback helps us improve our services.</p>
-
-    <form id="feedbackForm" novalidate>
-      <div class="row mb-3">
-        <div class="col-md-4 fw-bold">Overall Rating: <span class="text-danger">*</span></div>
-        <div class="col-md-8">
-          <div class="rating-group">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="overallRating" id="overallRating1" value="1" required>
-              <label class="form-check-label" for="overallRating1">1</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="overallRating" id="overallRating2" value="2">
-              <label class="form-check-label" for="overallRating2">2</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="overallRating" id="overallRating3" value="3">
-              <label class="form-check-label" for="overallRating3">3</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="overallRating" id="overallRating4" value="4">
-              <label class="form-check-label" for="overallRating4">4</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="overallRating" id="overallRating5" value="5">
-              <label class="form-check-label" for="overallRating5">5</label>
-            </div>
-          </div>
-          <div class="error-message" id="overallRatingError">Please provide an overall rating</div>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-4 fw-bold">Quality of Service: <span class="text-danger">*</span></div>
-        <div class="col-md-8">
-          <div class="rating-group">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="qualityRating" id="qualityRating1" value="1" required>
-              <label class="form-check-label" for="qualityRating1">1</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="qualityRating" id="qualityRating2" value="2">
-              <label class="form-check-label" for="qualityRating2">2</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="qualityRating" id="qualityRating3" value="3">
-              <label class="form-check-label" for="qualityRating3">3</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="qualityRating" id="qualityRating4" value="4">
-              <label class="form-check-label" for="qualityRating4">4</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="qualityRating" id="qualityRating5" value="5">
-              <label class="form-check-label" for="qualityRating5">5</label>
-            </div>
-          </div>
-          <div class="error-message" id="qualityRatingError">Please provide a quality rating</div>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-4 fw-bold">Timeliness: <span class="text-danger">*</span></div>
-        <div class="col-md-8">
-          <div class="rating-group">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="timelinessRating" id="timelinessRating1" value="1" required>
-              <label class="form-check-label" for="timelinessRating1">1</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="timelinessRating" id="timelinessRating2" value="2">
-              <label class="form-check-label" for="timelinessRating2">2</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="timelinessRating" id="timelinessRating3" value="3">
-              <label class="form-check-label" for="timelinessRating3">3</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="timelinessRating" id="timelinessRating4" value="4">
-              <label class="form-check-label" for="timelinessRating4">4</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="timelinessRating" id="timelinessRating5" value="5">
-              <label class="form-check-label" for="timelinessRating5">5</label>
-            </div>
-          </div>
-          <div class="error-message" id="timelinessRatingError">Please provide a timeliness rating</div>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-4 fw-bold">Communication: <span class="text-danger">*</span></div>
-        <div class="col-md-8">
-          <div class="rating-group">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="communicationRating" id="communicationRating1" value="1" required>
-              <label class="form-check-label" for="communicationRating1">1</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="communicationRating" id="communicationRating2" value="2">
-              <label class="form-check-label" for="communicationRating2">2</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="communicationRating" id="communicationRating3" value="3">
-              <label class="form-check-label" for="communicationRating3">3</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="communicationRating" id="communicationRating4" value="4">
-              <label class="form-check-label" for="communicationRating4">4</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="communicationRating" id="communicationRating5" value="5">
-              <label class="form-check-label" for="communicationRating5">5</label>
-            </div>
-          </div>
-          <div class="error-message" id="communicationRatingError">Please provide a communication rating</div>
-        </div>
-      </div>
-
-      <div class="row mb-4">
-        <div class="col-md-4 fw-bold">Value for Money: <span class="text-danger">*</span></div>
-        <div class="col-md-8">
-          <div class="rating-group">
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="valueRating" id="valueRating1" value="1" required>
-              <label class="form-check-label" for="valueRating1">1</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="valueRating" id="valueRating2" value="2">
-              <label class="form-check-label" for="valueRating2">2</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="valueRating" id="valueRating3" value="3">
-              <label class="form-check-label" for="valueRating3">3</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="valueRating" id="valueRating4" value="4">
-              <label class="form-check-label" for="valueRating4">4</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="valueRating" id="valueRating5" value="5">
-              <label class="form-check-label" for="valueRating5">5</label>
-            </div>
-          </div>
-          <div class="error-message" id="valueRatingError">Please provide a value rating</div>
-        </div>
-      </div>
-
-      <div class="mb-4">
-        <label for="comments" class="form-label fw-bold">Additional Comments:</label>
-        <textarea name="comments" id="comments" class="form-control" 
-                  placeholder="Please share any additional feedback..." rows="4"></textarea>
-      </div>
-
-      <button type="submit" class="btn btn-primary px-4" id="submit-button">
-        Submit Feedback
-      </button>
-    </form>
-  </div>
-</div>
-
-<!-- THANK YOU -->
-<div class="container">
-  <div id="thank-you-container" class="form-card text-center" style="display:none;">
-    <h2 style="color:#ff7f27;">Thank You for Your Feedback!</h2>
-    <p>Your input helps us improve our services.</p>
-
-    <p><strong>Total Submissions:</strong> <span id="total-submissions">Loading…</span></p>
-    <p><strong>Average Overall Rating:</strong> <span id="avg-rating">Loading…</span> / 5</p>
-
-    <button onclick="location.reload()" class="btn btn-primary px-4">
-      Submit Another
-    </button>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <div class="container">
-    <div class="row">
-
-      <!-- COLUMN 1 -->
-      <div class="col-md-4 mb-4">
-        <img src="https://raw.githubusercontent.com/ashutoshrana1999/FeedBack_Form/refs/heads/main/image-removebg-preview.png" style="height:55px;" alt="LogicApt Logo" />
-        <h4 class="mt-3">Have a project?</h4>
-        <p>WE CAN HELP</p>
-        <p><a href="mailto:info@logicapt.com" style="color:#ff7f27;">info@logicapt.com</a></p>
-      </div>
-
-      <!-- COLUMN 2 -->
-      <div class="col-md-4 mb-4">
-        <h4>Our Office</h4>
-
-        <p><strong>ADDRESS</strong></p>
-        <p>
-          <a href="https://www.google.com/maps/search/?api=1&query=A-40A Landmark Plaza Mohali" target="_blank">
-        <i class="fa fa-map-marker-alt"></i>
-          LogicApt Informatics Pvt. Ltd.<br>
-          A-40A Landmark Plaza<br>
-          Phase VIII Extension<br>
-          Mohali - 160059 (Punjab), India
-        </a>
-        </p>
-
-        <p><strong>PHONE</strong></p>
-        <p><strong>India:</strong><br>
-          +91 (172) 5093683<br>
-          +91 97250 07842
-        </p>
-
-        <p><strong>USA:</strong><br>
-          +1 (415) 727 8390
-        </p>
-      </div>
-
-      <!-- COLUMN 3 -->
-      <div class="col-md-4 mb-4">
-        <h4>Find us on social media</h4>
-
-        <div class="footer-social mt-3">
-          <a href="https://linkedin.com/company/logicapt" target="_blank">
-            <i class="fa-brands fa-linkedin"></i>
-          </a>
-
-          <a href="https://instagram.com/logicaptinformatics/" target="_blank">
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-
-          <a href="https://logicapt.com" target="_blank">
-            <i class="fa fa-globe"></i>
-          </a>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="footer-bottom">
-      &copy; 2025 LogicApt. All rights reserved.
-    </div>
-  </div>
-</footer>
-
-<!-- BOOTSTRAP JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-// Configuration - Replace with your Google Sheets ID
-const SHEET_ID = '1yxn338O8GbNq-UDJiJDpcX4t7U8TNZYKnL99I-nJfyw';
-const SHEET_NAME = 'Project_Data';
+// Configuration - Web App URL for fetching project data
+const PROJECT_DATA_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw7v9uappRW17ish0rJjkeLMHEwkGUP6UrvP2UGs4VbjgkW5Cb0g0ZEcIN49NX93Q/exec';
 
-// Web App URL for submitting feedback (REPLACE WITH YOUR ACTUAL WEB APP URL)
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwIn5Ima-axKANo-9VdxNGyOjFpzExWHUqFV8pFPKoBGVR1e9wH_z8wPhfjBf0xFfw/exec';
+// Web App URL for submitting feedback (keep this for later use)
+const FEEDBACK_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwIn5Ima-axKANo-9VdxNGyOjFpzExWHUqFV8pFPKoBGVR1e9wH_z8wPhfjBf0xFfw/exec';
 
 // Global variable to store current project data
 let currentProjectData = {};
@@ -573,34 +45,6 @@ function setLoadingState(loading) {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Submit Feedback';
   }
-}
-
-// Google Sheets Integration
-function parseGviz(text) {
-  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
-  if (!match) throw new Error('Unexpected Google Sheets response format');
-  return JSON.parse(match[1]);
-}
-
-function normalizeHeader(label) {
-  if (!label) return '';
-  return label.toString().trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w_]/g, '');
-}
-
-function rowToObject(table, rowIndex) {
-  const obj = {};
-  const cols = table.cols;
-  const row = table.rows[rowIndex];
-  cols.forEach((col, i) => {
-    const rawLabel = (col && col.label) ? col.label.toString() : `col${i}`;
-    const key = normalizeHeader(rawLabel);
-    const cell = (row && row.c && row.c[i]) ? row.c[i].v : null;
-    obj[key] = cell;
-  });
-  return obj;
 }
 
 // Parse the p parameter to extract client and project codes
@@ -653,194 +97,39 @@ function validateForm() {
   return isValid;
 }
 
-// Form Submission to Google Sheets
-async function submitFeedback(formData, projectData) {
+// Project Data Loading from Web App
+async function loadProjectFromWebApp() {
+  const urlProject = parseProjectFromUrl();
+  
+  if (!urlProject) {
+    showError('No project specified in URL. Please use a valid project URL with the "p" parameter.');
+    return;
+  }
+
   try {
-    setLoadingState(true);
+    // Build the URL with project parameter for the web app
+    const url = `${PROJECT_DATA_WEB_APP_URL}?project=${encodeURIComponent(urlProject.projectCode)}`;
+    console.log("Fetching project data from:", url);
     
-    // Prepare data for submission
-    const submissionData = {
-      timestamp: new Date().toISOString(),
-      project_code: projectData.project_code || projectData.projectcode || '',
-      client_code: projectData.client_code || projectData.clientcode || '',
-      overall_rating: formData.overallRating,
-      quality_rating: formData.qualityRating,
-      timeliness_rating: formData.timelinessRating,
-      communication_rating: formData.communicationRating,
-      value_rating: formData.valueRating,
-      comments: formData.comments || ''
-    };
+    const response = await fetch(url);
     
-    console.log('Submitting feedback:', submissionData);
-    
-    // Submit to Google Apps Script Web App
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(submissionData)
-    });
-    
-    const result = await response.json();
-    
-    if (result.status === 'success') {
-      // Also store in localStorage for demo purposes
-      const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
-      storedFeedback.push({
-        ...submissionData,
-        project: document.getElementById('project-name').innerText
-      });
-      localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
-      
-      return { success: true, data: storedFeedback };
-    } else {
-      throw new Error(result.message || 'Failed to submit feedback');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    
+    const projectData = await response.json();
+    
+    if (projectData.error) {
+      showError(`Error: ${projectData.error}`);
+      return;
+    }
+    
+    console.log("Project data received:", projectData);
+    displayProjectData(projectData);
     
   } catch (error) {
-    console.error('Submission error:', error);
-    
-    // Fallback to localStorage if web app fails
-    console.log('Using localStorage fallback...');
-    const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
-    const currentProject = document.getElementById('project-name').innerText;
-    
-    const fallbackData = {
-      ...formData,
-      timestamp: new Date().toISOString(),
-      project: currentProject,
-      project_code: projectData.project_code || projectData.projectcode || '',
-      client_code: projectData.client_code || projectData.clientcode || ''
-    };
-    
-    storedFeedback.push(fallbackData);
-    localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
-    
-    return { success: true, data: storedFeedback, fallback: true };
-  } finally {
-    setLoadingState(false);
-  }
-}
-
-// Project Data Loading from Google Sheets
-async function loadProjectFromSheet() {
-  // Build the Google Sheets API URL
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
-    const text = await res.text();
-    const json = parseGviz(text);
-    const table = json.table;
-
-    if (!table || !table.rows || table.rows.length === 0) {
-      showError('No project data found in the sheet.');
-      return;
-    }
-
-    // Try to find project using the p parameter first
-    const urlProject = parseProjectFromUrl();
-    let chosenRowIndex = -1;
-
-    if (urlProject) {
-      console.log("Looking for project with:", urlProject);
-      
-      // Find project by client code and project code from URL
-      let found = -1;
-      
-      // Find client code column
-      const clientCodeColIndex = table.cols.findIndex(c => {
-        const label = normalizeHeader(c.label);
-        return ['client_code', 'clientcode', 'client'].includes(label);
-      });
-      
-      // Find project code column  
-      const projectCodeColIndex = table.cols.findIndex(c => {
-        const label = normalizeHeader(c.label);
-        return ['project_code', 'projectcode', 'project'].includes(label);
-      });
-      
-      console.log("Client code column index:", clientCodeColIndex);
-      console.log("Project code column index:", projectCodeColIndex);
-      
-      if (clientCodeColIndex >= 0 && projectCodeColIndex >= 0) {
-        found = table.rows.findIndex(r => {
-          const clientCell = r.c && r.c[clientCodeColIndex] ? String(r.c[clientCodeColIndex].v) : '';
-          const projectCell = r.c && r.c[projectCodeColIndex] ? String(r.c[projectCodeColIndex].v) : '';
-          
-          console.log(`Checking row - Client: "${clientCell}", Project: "${projectCell}"`);
-          console.log(`Looking for - Client: "${urlProject.clientCode}", Project: "${urlProject.projectCode}"`);
-          
-          return clientCell === urlProject.clientCode && projectCell === urlProject.projectCode;
-        });
-      }
-      
-      if (found >= 0) {
-        chosenRowIndex = found;
-        console.log("Found project at row index:", chosenRowIndex);
-      } else {
-        showError(`Project not found for Client Code: ${urlProject.clientCode} and Project Code: ${urlProject.projectCode}. Please check the URL parameters.`);
-        return;
-      }
-    } else {
-      // Fallback to old URL parameters if p parameter is not present
-      const projectIndexParam = getQueryParam('projectIndex');
-      const projectIdParam = getQueryParam('projectId');
-
-      if (projectIndexParam !== null) {
-        const idx = parseInt(projectIndexParam, 10);
-        if (!isNaN(idx) && idx >= 0 && idx < table.rows.length) {
-          chosenRowIndex = idx;
-        }
-      } else if (projectIdParam !== null) {
-        let found = -1;
-        const possibleHeaders = ['projectcode', 'project_code', 'projectid', 'id', 'code'];
-        
-        for (let header of possibleHeaders) {
-          const colIndex = table.cols.findIndex(c => {
-            const label = normalizeHeader(c.label);
-            return label === header;
-          });
-          
-          if (colIndex >= 0) {
-            found = table.rows.findIndex(r => {
-              const cell = r.c && r.c[colIndex] ? r.c[colIndex].v : null;
-              return String(cell).toLowerCase() === projectIdParam.toLowerCase();
-            });
-            if (found >= 0) break;
-          }
-        }
-        
-        if (found >= 0) chosenRowIndex = found;
-      } else {
-        // If no parameters, show first project
-        chosenRowIndex = 0;
-      }
-    }
-
-    // If no project found and no parameters, show error
-    if (chosenRowIndex === -1) {
-      showError('No project specified. Please use a valid project URL.');
-      return;
-    }
-
-    const project = rowToObject(table, chosenRowIndex);
-    console.log("Loaded project:", project);
-    
-    // Enhanced project validation
-    const hasProjectData = project.project_type || project.project_title || project.title || project.name || project.project_code;
-    if (!hasProjectData) {
-      showError('Project data not found or incomplete. Please check the project parameters.');
-      return;
-    }
-    
-    displayProjectData(project);
-
-  } catch (err) {
-    console.error(err);
-    showError('Unable to fetch project data: ' + (err.message || err), true);
+    console.error('Error fetching project data:', error);
+    showError('Unable to fetch project data. Please check the project URL and try again.', true);
   }
 }
 
@@ -849,7 +138,7 @@ function displayProjectData(project) {
   const projectParagraphEl = document.getElementById('project-paragraph');
   
   // Use project title if present for heading
-  const heading = project.project_title || project.projecttitle || project.title || project.name || project.project_code || 'Unnamed Project';
+  const heading = project.Title || project["Project Title"] || project["Project Code"] || 'Unnamed Project';
   projectNameEl.textContent = heading;
 
   // Generate the dynamic paragraph based on project_type
@@ -858,7 +147,6 @@ function displayProjectData(project) {
   // Store project data for form submission
   currentProjectData = project;
 
-  // NO LINK IS ADDED HERE - The "View Project Details" link is completely removed
   projectParagraphEl.innerHTML = paragraphHtml;
   
   document.getElementById('loading-spinner').style.display = 'none';
@@ -867,14 +155,29 @@ function displayProjectData(project) {
 
 // Generate project paragraph content
 function generateProjectParagraph(project) {
-  const type = (project.project_type || '').toString().trim();
-  const code = project.project_code || project.projectcode || '';
-  const client = project.client_code || project.clientcode || '';
-  const title = project.project_title || project.projecttitle || '';
-  const patent = project.patent_number || project.patentnumber || '';
-  const product = project.product_mapped || project.productname || project.product_name || project.product || '';
+  const type = (project["Project Type"] || project.projectType || '').toString().trim();
+  const code = project["Project Code"] || project.projectCode || '';
+  const client = project["Client Code"] || project.clientCode || '';
+  const title = project.Title || project["Project Title"] || '';
+  const patent = project["Patent Number"] || project.patentNumber || '';
+  const product = project["Product Name"] || project.productName || '';
 
   console.log("Generating paragraph for project type:", type);
+
+  // Use the projectParagraph from the web app if available
+  if (project.projectParagraph && project.projectParagraph !== "No paragraph available for this project type.") {
+    return `
+      <p>${project.projectParagraph}</p>
+      
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: ${escapeHtml(type || 'Unknown')}<br>
+      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}${product ? `<br>Product Name: ${escapeHtml(product)}` : ''}</p>
+
+      <p>Thank you for your valuable partnership.</p>
+    `;
+  }
 
   // Normalize for matching
   const t = type.toLowerCase();
@@ -967,8 +270,8 @@ function showThankYouPage() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-  // Load project data from Google Sheets
-  loadProjectFromSheet();
+  // Load project data from Web App
+  loadProjectFromWebApp();
   
   // Form submission handler
   document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
@@ -993,14 +296,28 @@ document.addEventListener('DOMContentLoaded', function() {
       comments: document.getElementById('comments').value
     };
     
+    // For now, just store in localStorage and show thank you page
+    // You'll add the actual submission logic later
     try {
-      const result = await submitFeedback(formData, currentProjectData);
-      if (result.fallback) {
-        console.log('Feedback saved to localStorage (fallback mode)');
-      }
+      const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
+      const currentProject = document.getElementById('project-name').innerText;
+      
+      const feedbackData = {
+        ...formData,
+        timestamp: new Date().toISOString(),
+        project: currentProject,
+        projectCode: currentProjectData["Project Code"] || currentProjectData.projectCode || '',
+        clientCode: currentProjectData["Client Code"] || currentProjectData.clientCode || '',
+        projectType: currentProjectData["Project Type"] || currentProjectData.projectType || ''
+      };
+      
+      storedFeedback.push(feedbackData);
+      localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
+      
+      console.log('Feedback saved to localStorage:', feedbackData);
       showThankYouPage();
     } catch (error) {
-      alert('Error submitting feedback: ' + error.message);
+      alert('Error saving feedback: ' + error.message);
     }
   });
   
@@ -1017,6 +334,3 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-
-</body>
-</html>
