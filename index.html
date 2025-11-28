@@ -526,11 +526,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Configuration - Replace with your Google Sheets ID
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw7v9uappRW17ish0rJjkeLMHEwkGUP6UrvP2UGs4VbjgkW5Cb0g0ZEcIN49NX93Q/exec';
+// Configuration - Web App URL for fetching project data
+const PROJECT_DATA_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw7v9uappRW17ish0rJjkeLMHEwkGUP6UrvP2UGs4VbjgkW5Cb0g0ZEcIN49NX93Q/exec';
 
-// Web App URL for submitting feedback (REPLACE WITH YOUR ACTUAL WEB APP URL)
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwIn5Ima-axKANo-9VdxNGyOjFpzExWHUqFV8pFPKoBGVR1e9wH_z8wPhfjBf0xFfw/exec';
+// Web App URL for submitting feedback (for future use)
+const FEEDBACK_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwIn5Ima-axKANo-9VdxNGyOjFpzExWHUqFV8pFPKoBGVR1e9wH_z8wPhfjBf0xFfw/exec';
 
 // Global variable to store current project data
 let currentProjectData = {};
@@ -572,34 +572,6 @@ function setLoadingState(loading) {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Submit Feedback';
   }
-}
-
-// Google Sheets Integration
-function parseGviz(text) {
-  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
-  if (!match) throw new Error('Unexpected Google Sheets response format');
-  return JSON.parse(match[1]);
-}
-
-function normalizeHeader(label) {
-  if (!label) return '';
-  return label.toString().trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w_]/g, '');
-}
-
-function rowToObject(table, rowIndex) {
-  const obj = {};
-  const cols = table.cols;
-  const row = table.rows[rowIndex];
-  cols.forEach((col, i) => {
-    const rawLabel = (col && col.label) ? col.label.toString() : `col${i}`;
-    const key = normalizeHeader(rawLabel);
-    const cell = (row && row.c && row.c[i]) ? row.c[i].v : null;
-    obj[key] = cell;
-  });
-  return obj;
 }
 
 // Parse the p parameter to extract client and project codes
@@ -652,194 +624,39 @@ function validateForm() {
   return isValid;
 }
 
-// Form Submission to Google Sheets
-async function submitFeedback(formData, projectData) {
+// Project Data Loading from Web App
+async function loadProjectFromWebApp() {
+  const urlProject = parseProjectFromUrl();
+  
+  if (!urlProject) {
+    showError('No project specified in URL. Please use a valid project URL with the "p" parameter (format: ?p=/clientCode/projectCode).');
+    return;
+  }
+
   try {
-    setLoadingState(true);
+    // Build the URL with project parameter for the web app
+    const url = `${PROJECT_DATA_WEB_APP_URL}?project=${encodeURIComponent(urlProject.projectCode)}`;
+    console.log("Fetching project data from:", url);
     
-    // Prepare data for submission
-    const submissionData = {
-      timestamp: new Date().toISOString(),
-      project_code: projectData.project_code || projectData.projectcode || '',
-      client_code: projectData.client_code || projectData.clientcode || '',
-      overall_rating: formData.overallRating,
-      quality_rating: formData.qualityRating,
-      timeliness_rating: formData.timelinessRating,
-      communication_rating: formData.communicationRating,
-      value_rating: formData.valueRating,
-      comments: formData.comments || ''
-    };
+    const response = await fetch(url);
     
-    console.log('Submitting feedback:', submissionData);
-    
-    // Submit to Google Apps Script Web App
-    const response = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(submissionData)
-    });
-    
-    const result = await response.json();
-    
-    if (result.status === 'success') {
-      // Also store in localStorage for demo purposes
-      const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
-      storedFeedback.push({
-        ...submissionData,
-        project: document.getElementById('project-name').innerText
-      });
-      localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
-      
-      return { success: true, data: storedFeedback };
-    } else {
-      throw new Error(result.message || 'Failed to submit feedback');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    
+    const projectData = await response.json();
+    
+    if (projectData.error) {
+      showError(`Error: ${projectData.error}`);
+      return;
+    }
+    
+    console.log("Project data received:", projectData);
+    displayProjectData(projectData);
     
   } catch (error) {
-    console.error('Submission error:', error);
-    
-    // Fallback to localStorage if web app fails
-    console.log('Using localStorage fallback...');
-    const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
-    const currentProject = document.getElementById('project-name').innerText;
-    
-    const fallbackData = {
-      ...formData,
-      timestamp: new Date().toISOString(),
-      project: currentProject,
-      project_code: projectData.project_code || projectData.projectcode || '',
-      client_code: projectData.client_code || projectData.clientcode || ''
-    };
-    
-    storedFeedback.push(fallbackData);
-    localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
-    
-    return { success: true, data: storedFeedback, fallback: true };
-  } finally {
-    setLoadingState(false);
-  }
-}
-
-// Project Data Loading from Google Sheets
-async function loadProjectFromSheet() {
-  // Build the Google Sheets API URL
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(SHEET_NAME)}&tqx=out:json`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
-    const text = await res.text();
-    const json = parseGviz(text);
-    const table = json.table;
-
-    if (!table || !table.rows || table.rows.length === 0) {
-      showError('No project data found in the sheet.');
-      return;
-    }
-
-    // Try to find project using the p parameter first
-    const urlProject = parseProjectFromUrl();
-    let chosenRowIndex = -1;
-
-    if (urlProject) {
-      console.log("Looking for project with:", urlProject);
-      
-      // Find project by client code and project code from URL
-      let found = -1;
-      
-      // Find client code column
-      const clientCodeColIndex = table.cols.findIndex(c => {
-        const label = normalizeHeader(c.label);
-        return ['client_code', 'clientcode', 'client'].includes(label);
-      });
-      
-      // Find project code column  
-      const projectCodeColIndex = table.cols.findIndex(c => {
-        const label = normalizeHeader(c.label);
-        return ['project_code', 'projectcode', 'project'].includes(label);
-      });
-      
-      console.log("Client code column index:", clientCodeColIndex);
-      console.log("Project code column index:", projectCodeColIndex);
-      
-      if (clientCodeColIndex >= 0 && projectCodeColIndex >= 0) {
-        found = table.rows.findIndex(r => {
-          const clientCell = r.c && r.c[clientCodeColIndex] ? String(r.c[clientCodeColIndex].v) : '';
-          const projectCell = r.c && r.c[projectCodeColIndex] ? String(r.c[projectCodeColIndex].v) : '';
-          
-          console.log(`Checking row - Client: "${clientCell}", Project: "${projectCell}"`);
-          console.log(`Looking for - Client: "${urlProject.clientCode}", Project: "${urlProject.projectCode}"`);
-          
-          return clientCell === urlProject.clientCode && projectCell === urlProject.projectCode;
-        });
-      }
-      
-      if (found >= 0) {
-        chosenRowIndex = found;
-        console.log("Found project at row index:", chosenRowIndex);
-      } else {
-        showError(`Project not found for Client Code: ${urlProject.clientCode} and Project Code: ${urlProject.projectCode}. Please check the URL parameters.`);
-        return;
-      }
-    } else {
-      // Fallback to old URL parameters if p parameter is not present
-      const projectIndexParam = getQueryParam('projectIndex');
-      const projectIdParam = getQueryParam('projectId');
-
-      if (projectIndexParam !== null) {
-        const idx = parseInt(projectIndexParam, 10);
-        if (!isNaN(idx) && idx >= 0 && idx < table.rows.length) {
-          chosenRowIndex = idx;
-        }
-      } else if (projectIdParam !== null) {
-        let found = -1;
-        const possibleHeaders = ['projectcode', 'project_code', 'projectid', 'id', 'code'];
-        
-        for (let header of possibleHeaders) {
-          const colIndex = table.cols.findIndex(c => {
-            const label = normalizeHeader(c.label);
-            return label === header;
-          });
-          
-          if (colIndex >= 0) {
-            found = table.rows.findIndex(r => {
-              const cell = r.c && r.c[colIndex] ? r.c[colIndex].v : null;
-              return String(cell).toLowerCase() === projectIdParam.toLowerCase();
-            });
-            if (found >= 0) break;
-          }
-        }
-        
-        if (found >= 0) chosenRowIndex = found;
-      } else {
-        // If no parameters, show first project
-        chosenRowIndex = 0;
-      }
-    }
-
-    // If no project found and no parameters, show error
-    if (chosenRowIndex === -1) {
-      showError('No project specified. Please use a valid project URL.');
-      return;
-    }
-
-    const project = rowToObject(table, chosenRowIndex);
-    console.log("Loaded project:", project);
-    
-    // Enhanced project validation
-    const hasProjectData = project.project_type || project.project_title || project.title || project.name || project.project_code;
-    if (!hasProjectData) {
-      showError('Project data not found or incomplete. Please check the project parameters.');
-      return;
-    }
-    
-    displayProjectData(project);
-
-  } catch (err) {
-    console.error(err);
-    showError('Unable to fetch project data: ' + (err.message || err), true);
+    console.error('Error fetching project data:', error);
+    showError('Unable to fetch project data. Please check the project URL and try again.', true);
   }
 }
 
@@ -848,7 +665,7 @@ function displayProjectData(project) {
   const projectParagraphEl = document.getElementById('project-paragraph');
   
   // Use project title if present for heading
-  const heading = project.project_title || project.projecttitle || project.title || project.name || project.project_code || 'Unnamed Project';
+  const heading = project.Title || project["Project Title"] || project["Project Code"] || 'Unnamed Project';
   projectNameEl.textContent = heading;
 
   // Generate the dynamic paragraph based on project_type
@@ -857,7 +674,6 @@ function displayProjectData(project) {
   // Store project data for form submission
   currentProjectData = project;
 
-  // NO LINK IS ADDED HERE - The "View Project Details" link is completely removed
   projectParagraphEl.innerHTML = paragraphHtml;
   
   document.getElementById('loading-spinner').style.display = 'none';
@@ -866,14 +682,29 @@ function displayProjectData(project) {
 
 // Generate project paragraph content
 function generateProjectParagraph(project) {
-  const type = (project.project_type || '').toString().trim();
-  const code = project.project_code || project.projectcode || '';
-  const client = project.client_code || project.clientcode || '';
-  const title = project.project_title || project.projecttitle || '';
-  const patent = project.patent_number || project.patentnumber || '';
-  const product = project.product_mapped || project.productname || project.product_name || project.product || '';
+  const type = (project["Project Type"] || project.projectType || '').toString().trim();
+  const code = project["Project Code"] || project.projectCode || '';
+  const client = project["Client Code"] || project.clientCode || '';
+  const title = project.Title || project["Project Title"] || '';
+  const patent = project["Patent Number"] || project.patentNumber || '';
+  const product = project["Product Name"] || project.productName || '';
 
   console.log("Generating paragraph for project type:", type);
+
+  // Use the projectParagraph from the web app if available
+  if (project.projectParagraph && project.projectParagraph !== "No paragraph available for this project type.") {
+    return `
+      <p>${project.projectParagraph}</p>
+      
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: ${escapeHtml(type || 'Unknown')}<br>
+      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ''}${product ? `<br>Product Name: ${escapeHtml(product)}` : ''}</p>
+
+      <p>Thank you for your valuable partnership.</p>
+    `;
+  }
 
   // Normalize for matching
   const t = type.toLowerCase();
@@ -951,8 +782,8 @@ function showThankYouPage() {
   let validRatings = 0;
   
   storedFeedback.forEach(feedback => {
-    if (feedback.overall_rating) {
-      totalRating += parseInt(feedback.overall_rating);
+    if (feedback.overallRating) {
+      totalRating += parseInt(feedback.overallRating);
       validRatings++;
     }
   });
@@ -966,8 +797,8 @@ function showThankYouPage() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-  // Load project data from Google Sheets
-  loadProjectFromSheet();
+  // Load project data from Web App
+  loadProjectFromWebApp();
   
   // Form submission handler
   document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
@@ -992,14 +823,28 @@ document.addEventListener('DOMContentLoaded', function() {
       comments: document.getElementById('comments').value
     };
     
+    // For now, just store in localStorage and show thank you page
+    // You'll add the actual submission logic later
     try {
-      const result = await submitFeedback(formData, currentProjectData);
-      if (result.fallback) {
-        console.log('Feedback saved to localStorage (fallback mode)');
-      }
+      const storedFeedback = JSON.parse(localStorage.getItem('logicapt_feedback') || '[]');
+      const currentProject = document.getElementById('project-name').innerText;
+      
+      const feedbackData = {
+        ...formData,
+        timestamp: new Date().toISOString(),
+        project: currentProject,
+        projectCode: currentProjectData["Project Code"] || currentProjectData.projectCode || '',
+        clientCode: currentProjectData["Client Code"] || currentProjectData.clientCode || '',
+        projectType: currentProjectData["Project Type"] || currentProjectData.projectType || ''
+      };
+      
+      storedFeedback.push(feedbackData);
+      localStorage.setItem('logicapt_feedback', JSON.stringify(storedFeedback));
+      
+      console.log('Feedback saved to localStorage:', feedbackData);
       showThankYouPage();
     } catch (error) {
-      alert('Error submitting feedback: ' + error.message);
+      alert('Error saving feedback: ' + error.message);
     }
   });
   
