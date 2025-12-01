@@ -218,7 +218,7 @@
 
 </head>
 
-<body>
+<body onload="loadProjectData()">
 
 <div class="top-nav">
   <div class="container d-flex justify-content-between flex-wrap">
@@ -235,12 +235,12 @@
       <a href="tel:+14157278390"><i class="fa fa-phone"></i> +1 (415) 727 8390</a>
 
       <a href="https://linkedin.com/company/logicapt"
-         target="_blank" class="circle-icon">
+        target="_blank" class="circle-icon">
         <i class="fa-brands fa-linkedin"></i>
       </a>
 
       <a href="https://instagram.com/logicaptinformatics/"
-         target="_blank" class="circle-icon">
+        target="_blank" class="circle-icon">
         <i class="fa-brands fa-instagram"></i>
       </a>
     </div>
@@ -466,7 +466,7 @@
         <p><strong>ADDRESS</strong></p>
         <p>
           <a href="https://www.google.com/maps/search/?api=1&query=A-40A Landmark Plaza Mohali" target="_blank">
-        <i class="fa fa-map-marker-alt"></i>
+          <i class="fa fa-map-marker-alt"></i>
           LogicApt Informatics Pvt. Ltd.<br>
           A-40A Landmark Plaza<br>
           Phase VIII Extension<br>
@@ -552,90 +552,80 @@ function setLoadingState(loading) {
   }
 }
 
-// ---------------- FIXED FUNCTION --------------------
+/**
+ * Parses the URL for the clientCode and projectCode.
+ * It expects the format ?p=clientCode/projectCode or ?clientCode=...&projectCode=...
+ */
 function parseProjectFromUrl() {
   const pParam = getQueryParam("p");
-  if (!pParam) return null;
+  const clientParam = getQueryParam("clientCode") || getQueryParam("client_code");
+  const projectParam = getQueryParam("projectCode") || getQueryParam("project_code");
 
-  console.log("p parameter found:", pParam);
+  if (pParam) {
+    console.log("p parameter found:", pParam);
+    const cleanParam = pParam.replace(/^\/+|\/+$/g, "");
+    const parts = cleanParam.split("/").filter((part) => part.trim() !== "");
 
-  const cleanParam = pParam.replace(/^\/+|\/+$/g, "");
-  const parts = cleanParam.split("/").filter((part) => part.trim() !== "");
-
-  console.log("Parsed parts:", parts);
-
-  if (parts.length >= 2) {
+    if (parts.length >= 2) {
+      return {
+        clientCode: parts[0],
+        projectCode: parts[1],
+      };
+    }
+  } else if (clientParam && projectParam) {
     return {
-      clientCode: parts[0],
-      projectCode: parts[1],
+      clientCode: clientParam,
+      projectCode: projectParam,
     };
   }
 
   return null;
 }
-// ----------------------------------------------------
 
-// ---------------- MISSING FUNCTION ADDED ----------------
+/**
+ * Main function to load project data on page load.
+ */
 async function loadProjectData() {
   console.log("Starting loadProjectData");
-  console.log("Window location:", window.location.href);
-  console.log("Query params:", window.location.search);
+  
+  const spinner = document.getElementById("loading-spinner");
+  const projectNameEl = document.getElementById("project-name");
+  const errorMsgEl = document.getElementById("error-message");
+  
+  errorMsgEl.style.display = "none";
+
+  const project = parseProjectFromUrl();
+  
+  if (!project) {
+    if (spinner) spinner.style.display = "none";
+    if (projectNameEl) projectNameEl.textContent = "Error";
+    errorMsgEl.textContent = "Invalid URL: Missing clientCode and projectCode parameters.";
+    errorMsgEl.style.display = "block";
+    return;
+  }
+  
+  console.log("Loading project:", project.clientCode, project.projectCode);
   
   try {
-    const project = parseProjectFromUrl();
-    
-    if (!project) {
-      const spinner = document.getElementById("loading-spinner");
-      if (spinner) spinner.style.display = "none";
-      
-      // Show error message
-      const errorMsg = document.getElementById("error-message");
-      if (errorMsg) {
-        errorMsg.textContent = "Invalid URL format. Please check your link.";
-      }
-      
-      const errorContainer = document.getElementById("error-container");
-      if (errorContainer) {
-        errorContainer.style.display = "block";
-      } else {
-        // Fallback alert if error container doesn't exist
-        alert("Invalid URL format. Please check your link.");
-      }
-      return;
-    }
-    
-    console.log("Loading project:", project.clientCode, project.projectCode);
-    
     const projectData = await fetchProjectData(
       project.clientCode, 
       project.projectCode
     );
-    
     displayProjectData(projectData);
     
   } catch (error) {
     console.error("Error loading project:", error);
     
-    const spinner = document.getElementById("loading-spinner");
     if (spinner) spinner.style.display = "none";
-    
-    // Show error message
-    const errorMsg = document.getElementById("error-message");
-    if (errorMsg) {
-      errorMsg.textContent = "Error loading project: " + error.message;
-    }
-    
-    const errorContainer = document.getElementById("error-container");
-    if (errorContainer) {
-      errorContainer.style.display = "block";
-    } else {
-      // Fallback alert
-      alert("Error loading project: " + error.message);
-    }
+    if (projectNameEl) projectNameEl.textContent = "Project Not Found";
+    errorMsgEl.textContent = "Error: " + (error.message || "Could not retrieve project data.");
+    errorMsgEl.style.display = "block";
   }
 }
-// ----------------------------------------------------
 
+/**
+ * Client-side validation for rating groups.
+ */
 function validateForm() {
   let isValid = true;
 
@@ -648,6 +638,7 @@ function validateForm() {
   ];
 
   requiredFields.forEach((field) => {
+    // Check if any radio button in the group is checked
     const checked = document.querySelector(
       'input[name="' + field + '"]:checked'
     );
@@ -664,41 +655,41 @@ function validateForm() {
   return isValid;
 }
 
-// ---------------- FETCH PROJECT DATA ----------------
+/**
+ * Attempts to fetch data using standard fetch (preferable with CORS).
+ * Falls back to JSONP if fetch fails, as Google Apps Script CORS support can be tricky.
+ */
 async function fetchProjectData(clientCode, projectCode) {
+  const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}`;
+
+  console.log("Fetch URL:", url);
+
   try {
-    const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}`;
-
-    console.log("Fetch URL:", url);
-
-    // IMPORTANT: Remove mode: 'cors' since Google Apps Script doesn't support CORS headers
     const response = await fetch(url);
     
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
     const result = await response.json();
-    console.log("Web App response:", result);
+    console.log("Web App response (Fetch):", result);
 
     if (result.status === "success") return result.project;
 
+    // Throw error from backend message
     throw new Error(result.message || "Project not found");
   } catch (error) {
-    console.error("Error fetching project:", error);
-    
-    // Try alternative method using JSONP if fetch fails due to CORS
-    if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-      console.log("Trying JSONP method...");
-      return await fetchProjectDataJsonp(clientCode, projectCode);
-    }
-    
-    throw error;
+    console.error("Error fetching project with fetch. Trying JSONP fallback:", error);
+    // Fallback to JSONP
+    return await fetchProjectDataJsonp(clientCode, projectCode);
   }
 }
 
-// ---------------- ALTERNATIVE JSONP METHOD (for CORS issues) ----------------
+/**
+ * ALTERNATIVE JSONP METHOD (for reliable GET requests to Apps Script).
+ */
 function fetchProjectDataJsonp(clientCode, projectCode) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    // Note the 'callback=' parameter for JSONP
     const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}&callback=${callbackName}`;
     
     window[callbackName] = function(data) {
@@ -708,7 +699,7 @@ function fetchProjectDataJsonp(clientCode, projectCode) {
       if (data.status === "success") {
         resolve(data.project);
       } else {
-        reject(new Error(data.message || "Project not found"));
+        reject(new Error(data.message || "Project not found via JSONP"));
       }
     };
     
@@ -717,14 +708,16 @@ function fetchProjectDataJsonp(clientCode, projectCode) {
     script.onerror = () => {
       delete window[callbackName];
       document.body.removeChild(script);
-      reject(new Error('JSONP request failed'));
+      reject(new Error('GET request failed (JSONP network error)'));
     };
     
     document.body.appendChild(script);
   });
 }
 
-// ---------------- SUBMIT FEEDBACK -------------------
+/**
+ * SUBMIT FEEDBACK - Calls the form-based submission method.
+ */
 async function submitFeedback(formData, projectData) {
   try {
     setLoadingState(true);
@@ -742,10 +735,10 @@ async function submitFeedback(formData, projectData) {
 
     console.log("Submitting data:", submissionData);
 
-    // IMPORTANT: Use form submission method instead of JSON POST for CORS compatibility
+    // Use form submission method for maximum compatibility
     const response = await submitFeedbackWithForm(submissionData);
 
-    if (response.success) {
+    if (response.status === "success") {
       return { success: true, message: response.message };
     }
 
@@ -758,12 +751,22 @@ async function submitFeedback(formData, projectData) {
   }
 }
 
-// ---------------- ALTERNATIVE FORM SUBMISSION METHOD ----------------
-async function submitFeedbackWithForm(submissionData) {
+/**
+ * ALTERNATIVE FORM SUBMISSION METHOD (Crucial for reliable POST to Apps Script).
+ * Simulates a form submission via an invisible <iframe> to bypass CORS restrictions.
+ */
+function submitFeedbackWithForm(submissionData) {
   return new Promise((resolve, reject) => {
+    const iframeName = 'iframe_' + Math.round(100000 * Math.random());
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeName;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = SUBMIT_WEB_APP_URL;
+    form.target = iframeName; // Target the invisible iframe
     form.style.display = 'none';
     
     // Add all data as hidden inputs
@@ -775,38 +778,42 @@ async function submitFeedbackWithForm(submissionData) {
       form.appendChild(input);
     });
     
-    // Add a callback parameter for JSONP-like response
-    const callbackName = 'submit_callback_' + Math.round(100000 * Math.random());
-    const callbackInput = document.createElement('input');
-    callbackInput.type = 'hidden';
-    callbackInput.name = 'callback';
-    callbackInput.value = callbackName;
-    form.appendChild(callbackInput);
-    
-    // Set up callback handler
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      document.body.removeChild(form);
-      resolve(data);
-    };
-    
-    // Add form to document and submit
     document.body.appendChild(form);
     
-    // Set timeout in case callback never fires
-    setTimeout(() => {
-      if (window[callbackName]) {
-        delete window[callbackName];
+    // Setup listener for iframe load, which contains the response
+    iframe.onload = function() {
+      try {
+        const responseText = iframe.contentWindow.document.body.textContent;
+        // The backend uses ContentService.createTextOutput, so the response is text/JSON
+        const data = JSON.parse(responseText);
+        
         document.body.removeChild(form);
+        document.body.removeChild(iframe);
+        
+        resolve(data);
+      } catch (e) {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+        reject(new Error('Failed to parse server response after submission.'));
+      }
+    };
+    
+    // Set timeout
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
         reject(new Error('Submission timeout'));
       }
-    }, 10000);
+    }, 15000);
     
     form.submit();
   });
 }
 
-// ---------------- DISPLAY PROJECT -------------------
+/**
+ * Displays fetched project data and reveals the feedback form.
+ */
 function displayProjectData(project) {
   const projectNameEl = document.getElementById("project-name");
   const projectParagraphEl = document.getElementById("project-paragraph");
@@ -826,11 +833,13 @@ function displayProjectData(project) {
   if (container) container.style.display = "block";
   
   // Hide error container if it was showing
-  const errorContainer = document.getElementById("error-container");
-  if (errorContainer) errorContainer.style.display = "none";
+  const errorMsgEl = document.getElementById("error-message");
+  if (errorMsgEl) errorMsgEl.style.display = "none";
 }
 
-// ---------------- PARAGRAPH GENERATOR ---------------
+/**
+ * Generates the project details paragraph based on project type.
+ */
 function generateProjectParagraph(project) {
   const type = (project.project_type || "").toString().trim();
   const code = project.project_code || "";
@@ -841,6 +850,7 @@ function generateProjectParagraph(project) {
 
   const t = type.toLowerCase();
 
+  // 1. Patentability Search
   if (
     t.includes("patentability") ||
     t.includes("patentibility") ||
@@ -864,6 +874,7 @@ function generateProjectParagraph(project) {
     );
   }
 
+  // 2. Invalidation/Invalidity Search
   if (
     t.includes("invalidation") ||
     t.includes("invalidity") ||
@@ -886,6 +897,7 @@ function generateProjectParagraph(project) {
     );
   }
 
+  // 3. Infringement/Freedom-to-Operate Study
   if (
     t.includes("infringement") ||
     t.includes("infringment") ||
@@ -910,6 +922,7 @@ function generateProjectParagraph(project) {
     );
   }
 
+  // 4. Default
   return (
     "<p>Thank you for collaborating with us on this project.</p>" +
     "<p><strong>Project Details:</strong><br>" +
@@ -918,7 +931,7 @@ function generateProjectParagraph(project) {
     "<br>Client Code: " +
     escapeHtml(client) +
     "<br>Type: " +
-    escapeHtml(type || "Unknown") +
+    escapeHtml(type || "General Project") +
     "<br>Project Title: " +
     escapeHtml(title) +
     (patent ? "<br>Patent Number: " + escapeHtml(patent) : "") +
@@ -927,7 +940,9 @@ function generateProjectParagraph(project) {
   );
 }
 
-// ---------------- THANK YOU PAGE --------------------
+/**
+ * Switches the view to the thank-you page and initiates loading of stats.
+ */
 function showThankYouPage() {
   const feedback = document.getElementById("feedback-container");
   const thanks = document.getElementById("thank-you-container");
@@ -935,90 +950,79 @@ function showThankYouPage() {
   if (feedback) feedback.style.display = "none";
   if (thanks) thanks.style.display = "block";
 
-  // Delay stats load to allow Google Sheets to update
+  // Delay stats load to allow Google Sheets to update (backend lock flush)
   setTimeout(() => {
     loadStats();
   }, 1500);
 }
 
-// ---------------- LOAD STATS ------------------------
+/**
+ * Loads and displays project statistics (total submissions and average rating).
+ */
 async function loadStats() {
   try {
     const url = `${FETCH_WEB_APP_URL}?stats=1&clientCode=${encodeURIComponent(currentProjectData.client_code)}&projectCode=${encodeURIComponent(currentProjectData.project_code)}`;
 
-    const response = await fetch(url);
-    
-    if (!response.ok) throw new Error("Failed to load stats");
+    // Use JSONP for reliable cross-origin GET requests
+    const data = await fetchProjectDataJsonp(currentProjectData.client_code, currentProjectData.project_code + "&stats=1");
 
-    const result = await response.json();
-    
-    // Updated to match backend response structure
-    if (result.status === "success" && result.project) {
+    // The data returned from getStats in the backend is structured under 'project' in the success object.
+    const stats = data;
+
+    if (stats) {
       document.getElementById("total-submissions").textContent = 
-        result.project.total_submissions || "0";
+        stats.total_submissions || "0";
       document.getElementById("avg-rating").textContent = 
-        result.project.average_rating || "0";
-    } else {
-      // Fallback values
-      document.getElementById("total-submissions").textContent = "N/A";
-      document.getElementById("avg-rating").textContent = "N/A";
+        stats.average_rating || "0.0";
     }
-  } catch (err) {
-    console.error(err);
-    document.getElementById("total-submissions").textContent = "Error";
-    document.getElementById("avg-rating").textContent = "Error";
+  } catch (error) {
+    console.error("Error loading stats:", error);
+    // Fallback values on error
+    document.getElementById("total-submissions").textContent = "N/A";
+    document.getElementById("avg-rating").textContent = "N/A";
   }
 }
 
-// ---------------- FORM SUBMISSION -------------------
-document
-  .getElementById("feedbackForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
+// ---------------- EVENT LISTENER --------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("feedbackForm");
+  
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    if (!validateForm()) return;
+      if (!validateForm()) {
+        console.log("Form validation failed.");
+        return;
+      }
 
-    const formData = {
-      overallRating: document.querySelector(
-        'input[name="overallRating"]:checked'
-      ).value,
-      qualityRating: document.querySelector(
-        'input[name="qualityRating"]:checked'
-      ).value,
-      timelinessRating: document.querySelector(
-        'input[name="timelinessRating"]:checked'
-      ).value,
-      communicationRating: document.querySelector(
-        'input[name="communicationRating"]:checked'
-      ).value,
-      valueRating: document.querySelector(
-        'input[name="valueRating"]:checked'
-      ).value,
-      comments: document.getElementById("comments").value,
-    };
+      // Collect form data manually for POST request
+      const formData = {
+        overallRating: document.querySelector('input[name="overallRating"]:checked')?.value,
+        qualityRating: document.querySelector('input[name="qualityRating"]:checked')?.value,
+        timelinessRating: document.querySelector('input[name="timelinessRating"]:checked')?.value,
+        communicationRating: document.querySelector('input[name="communicationRating"]:checked')?.value,
+        valueRating: document.querySelector('input[name="valueRating"]:checked')?.value,
+        comments: document.getElementById("comments").value,
+      };
 
-    try {
-      const response = await submitFeedback(formData, currentProjectData);
-      if (response.success) showThankYouPage();
-      else alert("Submission failed: " + response.message);
-    } catch (err) {
-      alert("Error submitting form: " + err.message);
-    }
-  });
-
-// ---------------- REAL-TIME VALIDATION --------------
-const radioGroups = document.querySelectorAll('input[type="radio"]');
-radioGroups.forEach((radio) => {
-  radio.addEventListener("change", function () {
-    const fieldName = this.name;
-    const errorElement = document.getElementById(fieldName + "Error");
-    if (errorElement) errorElement.style.display = "none";
-  });
+      try {
+        const result = await submitFeedback(formData, currentProjectData);
+        if (result.success) {
+          showThankYouPage();
+        } else {
+          alert("Submission failed: " + result.message);
+        }
+      } catch (error) {
+        alert("An error occurred during submission: " + error.message);
+      }
+    });
+  }
 });
 
-// ---------------- INITIAL LOAD ----------------------
-window.onload = loadProjectData;
-</script>
+// Added loadProjectData to body tag: <body onload="loadProjectData()">
+// loadProjectData(); 
 
+</script>
 </body>
 </html>
