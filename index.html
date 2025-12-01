@@ -514,6 +514,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+// IMPORTANT: Update this URL with your deployed Google Apps Script Web App URL
 const FETCH_WEB_APP_URL =
   "https://script.google.com/macros/s/AKfycbyrihgX7Vm95wY4qa27ddpFwqbNh8GvTr7DrlcK2a2aUkNeC2LPLe02CPDOfHuB2wg/exec";
 
@@ -531,11 +532,11 @@ function getQueryParam(name) {
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/"/g, """)
+    .replace(/'/g, "'");
 }
 
 function setLoadingState(loading) {
@@ -552,10 +553,6 @@ function setLoadingState(loading) {
   }
 }
 
-/**
- * Parses the URL for the clientCode and projectCode.
- * It expects the format ?p=clientCode/projectCode or ?clientCode=...&projectCode=...
- */
 function parseProjectFromUrl() {
   const pParam = getQueryParam("p");
   const clientParam = getQueryParam("clientCode") || getQueryParam("client_code");
@@ -582,9 +579,6 @@ function parseProjectFromUrl() {
   return null;
 }
 
-/**
- * Main function to load project data on page load.
- */
 async function loadProjectData() {
   console.log("Starting loadProjectData");
   
@@ -623,9 +617,6 @@ async function loadProjectData() {
   }
 }
 
-/**
- * Client-side validation for rating groups.
- */
 function validateForm() {
   let isValid = true;
 
@@ -638,7 +629,6 @@ function validateForm() {
   ];
 
   requiredFields.forEach((field) => {
-    // Check if any radio button in the group is checked
     const checked = document.querySelector(
       'input[name="' + field + '"]:checked'
     );
@@ -655,10 +645,6 @@ function validateForm() {
   return isValid;
 }
 
-/**
- * Attempts to fetch data using standard fetch (preferable with CORS).
- * Falls back to JSONP if fetch fails, as Google Apps Script CORS support can be tricky.
- */
 async function fetchProjectData(clientCode, projectCode) {
   const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}`;
 
@@ -674,7 +660,6 @@ async function fetchProjectData(clientCode, projectCode) {
 
     if (result.status === "success") return result.project;
 
-    // Throw error from backend message
     throw new Error(result.message || "Project not found");
   } catch (error) {
     console.error("Error fetching project with fetch. Trying JSONP fallback:", error);
@@ -683,13 +668,9 @@ async function fetchProjectData(clientCode, projectCode) {
   }
 }
 
-/**
- * ALTERNATIVE JSONP METHOD (for reliable GET requests to Apps Script).
- */
 function fetchProjectDataJsonp(clientCode, projectCode) {
   return new Promise((resolve, reject) => {
     const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-    // Note the 'callback=' parameter for JSONP
     const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}&callback=${callbackName}`;
     
     window[callbackName] = function(data) {
@@ -715,9 +696,6 @@ function fetchProjectDataJsonp(clientCode, projectCode) {
   });
 }
 
-/**
- * SUBMIT FEEDBACK - Calls the form-based submission method.
- */
 async function submitFeedback(formData, projectData) {
   try {
     setLoadingState(true);
@@ -735,8 +713,9 @@ async function submitFeedback(formData, projectData) {
 
     console.log("Submitting data:", submissionData);
 
-    // Use form submission method for maximum compatibility
-    const response = await submitFeedbackWithForm(submissionData);
+    // This method sends data as form-data (application/x-www-form-urlencoded), 
+    // which is the correct format for Apps Script's e.parameter
+    const response = await submitFeedbackWithForm(submissionData); 
 
     if (response.status === "success") {
       return { success: true, message: response.message };
@@ -752,8 +731,8 @@ async function submitFeedback(formData, projectData) {
 }
 
 /**
- * ALTERNATIVE FORM SUBMISSION METHOD (Crucial for reliable POST to Apps Script).
- * Simulates a form submission via an invisible <iframe> to bypass CORS restrictions.
+ * Sends data to Apps Script using a hidden form and iframe, simulating a standard form POST.
+ * This ensures the backend receives data in the `e.parameter` object, resolving the JSON error.
  */
 function submitFeedbackWithForm(submissionData) {
   return new Promise((resolve, reject) => {
@@ -769,7 +748,7 @@ function submitFeedbackWithForm(submissionData) {
     form.target = iframeName; // Target the invisible iframe
     form.style.display = 'none';
     
-    // Add all data as hidden inputs
+    // Add all data as hidden inputs (sends as form-data)
     Object.keys(submissionData).forEach(key => {
       const input = document.createElement('input');
       input.type = 'hidden';
@@ -780,11 +759,11 @@ function submitFeedbackWithForm(submissionData) {
     
     document.body.appendChild(form);
     
-    // Setup listener for iframe load, which contains the response
+    // Setup listener for iframe load, which contains the response from Apps Script
     iframe.onload = function() {
       try {
         const responseText = iframe.contentWindow.document.body.textContent;
-        // The backend uses ContentService.createTextOutput, so the response is text/JSON
+        // Parse the JSON response that your Apps Script doPost function is expected to return
         const data = JSON.parse(responseText);
         
         document.body.removeChild(form);
@@ -811,9 +790,6 @@ function submitFeedbackWithForm(submissionData) {
   });
 }
 
-/**
- * Displays fetched project data and reveals the feedback form.
- */
 function displayProjectData(project) {
   const projectNameEl = document.getElementById("project-name");
   const projectParagraphEl = document.getElementById("project-paragraph");
@@ -832,14 +808,10 @@ function displayProjectData(project) {
   const container = document.getElementById("feedback-container");
   if (container) container.style.display = "block";
   
-  // Hide error container if it was showing
   const errorMsgEl = document.getElementById("error-message");
   if (errorMsgEl) errorMsgEl.style.display = "none";
 }
 
-/**
- * Generates the project details paragraph based on project type.
- */
 function generateProjectParagraph(project) {
   const type = (project.project_type || "").toString().trim();
   const code = project.project_code || "";
@@ -850,7 +822,6 @@ function generateProjectParagraph(project) {
 
   const t = type.toLowerCase();
 
-  // 1. Patentability Search
   if (
     t.includes("patentability") ||
     t.includes("patentibility") ||
@@ -874,7 +845,6 @@ function generateProjectParagraph(project) {
     );
   }
 
-  // 2. Invalidation/Invalidity Search
   if (
     t.includes("invalidation") ||
     t.includes("invalidity") ||
@@ -897,7 +867,6 @@ function generateProjectParagraph(project) {
     );
   }
 
-  // 3. Infringement/Freedom-to-Operate Study
   if (
     t.includes("infringement") ||
     t.includes("infringment") ||
@@ -922,7 +891,6 @@ function generateProjectParagraph(project) {
     );
   }
 
-  // 4. Default
   return (
     "<p>Thank you for collaborating with us on this project.</p>" +
     "<p><strong>Project Details:</strong><br>" +
@@ -940,9 +908,6 @@ function generateProjectParagraph(project) {
   );
 }
 
-/**
- * Switches the view to the thank-you page and initiates loading of stats.
- */
 function showThankYouPage() {
   const feedback = document.getElementById("feedback-container");
   const thanks = document.getElementById("thank-you-container");
@@ -956,24 +921,19 @@ function showThankYouPage() {
   }, 1500);
 }
 
-/**
- * Loads and displays project statistics (total submissions and average rating).
- */
 async function loadStats() {
   try {
-    const url = `${FETCH_WEB_APP_URL}?stats=1&clientCode=${encodeURIComponent(currentProjectData.client_code)}&projectCode=${encodeURIComponent(currentProjectData.project_code)}`;
-
-    // Use JSONP for reliable cross-origin GET requests
-    const data = await fetchProjectDataJsonp(currentProjectData.client_code, currentProjectData.project_code + "&stats=1");
-
-    // The data returned from getStats in the backend is structured under 'project' in the success object.
-    const stats = data;
+    const statsUrl = `${currentProjectData.client_code}/${currentProjectData.project_code}&stats=1`;
+    
+    // Use JSONP fetch for reliable cross-origin GET requests
+    const stats = await fetchProjectDataJsonp(currentProjectData.client_code, currentProjectData.project_code + "&stats=1");
 
     if (stats) {
       document.getElementById("total-submissions").textContent = 
         stats.total_submissions || "0";
+      // Format rating to one decimal place if it exists
       document.getElementById("avg-rating").textContent = 
-        stats.average_rating || "0.0";
+        (stats.average_rating ? parseFloat(stats.average_rating).toFixed(1) : "0.0");
     }
   } catch (error) {
     console.error("Error loading stats:", error);
@@ -1019,10 +979,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-
-// Added loadProjectData to body tag: <body onload="loadProjectData()">
-// loadProjectData(); 
-
 </script>
 </body>
 </html>
