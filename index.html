@@ -514,9 +514,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-const FETCH_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwOPQZ6IGDVOhLaToi41ZOhoIg7sFmmwwpwzOnz2HlDmqIglgj5sQ-agX1zOy-CS98/exec';
-const SUBMIT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwOPQZ6IGDVOhLaToi41ZOhoIg7sFmmwwpwzOnz2HlDmqIglgj5sQ-agX1zOy-CS98/exec';
-
+const FETCH_WEB_APP_URL =
+  "https://script.google.com/macros/s/AKfycbwOPQZ6IGDVOhLaToi41ZOhoIg7sFmmwwpwzOnz2HlDmqIglgj5sQ-agX1zOy-CS98/exec";
 
 // Global variable to store current project data
 let currentProjectData = {};
@@ -528,7 +527,7 @@ function getQueryParam(name) {
 }
 
 function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
+  if (str === null || str === undefined) return "";
   return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -537,111 +536,199 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-function showError(message, isFatal = false) {
-  document.getElementById('loading-spinner').style.display = 'none';
-  const projectParagraphEl = document.getElementById('project-paragraph');
-  projectParagraphEl.innerHTML = '<p style="color: red; text-align: center;">' + message + '</p>';
-  
-  if (isFatal) {
-    document.getElementById('feedback-container').style.display = 'none';
-  }
-}
-
 function setLoadingState(loading) {
-  const submitBtn = document.getElementById('submit-button');
+  const submitBtn = document.getElementById("submit-button");
+  if (!submitBtn) return;
+
   if (loading) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+    submitBtn.innerHTML =
+      '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
   } else {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit Feedback';
+    submitBtn.textContent = "Submit Feedback";
   }
 }
 
-// Parse the p parameter to extract client and project codes
+/**
+ * Parses the URL for the clientCode and projectCode.
+ */
 function parseProjectFromUrl() {
-  const pParam = getQueryParam('p');
-  if (!pParam) {
-    return null;
-  }
-  
-  console.log("p parameter found:", pParam);
-  
-  // Expected format: /clientCode/projectCode
-  const cleanParam = pParam.replace(/^\/+|\/+$/g, '');
-  const parts = cleanParam.split('/').filter(part => part.trim() !== '');
-  
-  console.log("Parsed parts:", parts);
-  
-  if (parts.length >= 2) {
+  const pParam = getQueryParam("p");
+  const clientParam = getQueryParam("clientCode") || getQueryParam("client_code");
+  const projectParam = getQueryParam("projectCode") || getQueryParam("project_code");
+
+  if (pParam) {
+    console.log("p parameter found:", pParam);
+    const cleanParam = pParam.replace(/^\/+|\/+$/g, "");
+    const parts = cleanParam.split("/").filter((part) => part.trim() !== "");
+
+    if (parts.length >= 2) {
+      return {
+        clientCode: parts[0],
+        projectCode: parts[1],
+      };
+    }
+  } else if (clientParam && projectParam) {
     return {
-      clientCode: parts[0],
-      projectCode: parts[1]
+      clientCode: clientParam,
+      projectCode: projectParam,
     };
   }
+
   return null;
 }
 
-// Form Validation
-function validateForm() {
-  let isValid = true;
+/**
+ * Main function to load project data on page load.
+ */
+async function loadProjectData() {
+  console.log("Starting loadProjectData");
   
-  const requiredFields = [
-    'overallRating',
-    'qualityRating', 
-    'timelinessRating',
-    'communicationRating',
-    'valueRating'
-  ];
+  const spinner = document.getElementById("loading-spinner");
+  const projectNameEl = document.getElementById("project-name");
+  const errorMsgEl = document.getElementById("error-message");
   
-  requiredFields.forEach(field => {
-    const checked = document.querySelector('input[name="' + field + '"]:checked');
-    const errorElement = document.getElementById(field + 'Error');
-    
-    if (!checked) {
-      errorElement.style.display = 'block';
-      isValid = false;
-    } else {
-      errorElement.style.display = 'none';
-    }
-  });
-  
-  return isValid;
-}
+  errorMsgEl.style.display = "none";
 
-// Fetch Project Data from Web App
-async function fetchProjectData(clientCode, projectCode) {
+  const project = parseProjectFromUrl();
+  
+  if (!project) {
+    if (spinner) spinner.style.display = "none";
+    if (projectNameEl) projectNameEl.textContent = "Error";
+    errorMsgEl.textContent = "Invalid URL: Missing clientCode and projectCode parameters.";
+    errorMsgEl.style.display = "block";
+    return;
+  }
+  
+  console.log("Loading project:", project.clientCode, project.projectCode);
+  
   try {
-    console.log('Fetching project data for:', { clientCode, projectCode });
+    const projectData = await fetchProjectData(
+      project.clientCode, 
+      project.projectCode
+    );
+    displayProjectData(projectData);
     
-    const url = FETCH_WEB_APP_URL + '?clientCode=' + encodeURIComponent(clientCode) + '&projectCode=' + encodeURIComponent(projectCode);
-    console.log('Fetch URL:', url);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error('HTTP error! status: ' + response.status);
-    }
-    
-    const result = await response.json();
-    console.log('Web App response:', result);
-    
-    if (result.status === 'success') {
-      return result.project;
-    } else {
-      throw new Error(result.message || 'Project not found');
-    }
   } catch (error) {
-    console.error('Error fetching project data:', error);
-    throw error;
+    console.error("Error loading project:", error);
+    
+    if (spinner) spinner.style.display = "none";
+    if (projectNameEl) projectNameEl.textContent = "Project Not Found";
+    errorMsgEl.textContent = "Error: " + (error.message || "Could not retrieve project data.");
+    errorMsgEl.style.display = "block";
   }
 }
 
-// Submit Feedback via Web App - SIMPLIFIED VERSION
+/**
+ * Client-side validation for rating groups.
+ */
+function validateForm() {
+  let isValid = true;
+
+  const requiredFields = [
+    "overallRating",
+    "qualityRating",
+    "timelinessRating",
+    "communicationRating",
+    "valueRating",
+  ];
+
+  requiredFields.forEach((field) => {
+    // Check if any radio button in the group is checked
+    const checked = document.querySelector(
+      'input[name="' + field + '"]:checked'
+    );
+    const errorElement = document.getElementById(field + "Error");
+
+    if (!checked) {
+      if (errorElement) errorElement.style.display = "block";
+      isValid = false;
+    } else {
+      if (errorElement) errorElement.style.display = "none";
+    }
+  });
+
+  return isValid;
+}
+
+/**
+ * Attempts to fetch data using standard fetch.
+ */
+async function fetchProjectData(clientCode, projectCode) {
+  const url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}`;
+
+  console.log("Fetch URL:", url);
+
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+
+    const result = await response.json();
+    console.log("Web App response (Fetch):", result);
+
+    if (result.status === "success") return result.project;
+
+    // Throw error from backend message
+    throw new Error(result.message || "Project not found");
+  } catch (error) {
+    console.error("Error fetching project with fetch. Trying JSONP fallback:", error);
+    // Fallback to JSONP
+    return await fetchProjectDataJsonp(clientCode, projectCode);
+  }
+}
+
+/**
+ * FIXED: JSONP METHOD for GET requests
+ */
+function fetchProjectDataJsonp(clientCode, projectCode, isStats = false) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    
+    // Build URL correctly with stats parameter if needed
+    let url = `${FETCH_WEB_APP_URL}?clientCode=${encodeURIComponent(clientCode)}&projectCode=${encodeURIComponent(projectCode)}`;
+    if (isStats) {
+      url += '&stats=1';
+    }
+    url += `&callback=${callbackName}`;
+    
+    console.log("JSONP URL:", url);
+    
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      
+      console.log("JSONP Response:", data);
+      
+      if (data.status === "success") {
+        resolve(data.project || data); // Allow both formats
+      } else {
+        reject(new Error(data.message || "Request failed via JSONP"));
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => {
+      delete window[callbackName];
+      if (script.parentNode) {
+        document.body.removeChild(script);
+      }
+      reject(new Error('JSONP network error'));
+    };
+    
+    document.body.appendChild(script);
+  });
+}
+
+/**
+ * SUBMIT FEEDBACK - Uses form submission
+ */
 async function submitFeedback(formData, projectData) {
   try {
     setLoadingState(true);
-    
-    // Prepare data for submission
+
     const submissionData = {
       client_code: String(projectData.client_code),
       project_code: String(projectData.project_code),
@@ -650,207 +737,280 @@ async function submitFeedback(formData, projectData) {
       timeliness_rating: String(formData.timelinessRating),
       communication_rating: String(formData.communicationRating),
       value_rating: String(formData.valueRating),
-      additional_comment: String(formData.comments || '')
+      additional_comment: String(formData.comments || ""),
     };
-    
-    console.log('Submitting data:', submissionData);
-    
-    const response = await fetch(SUBMIT_WEB_APP_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(submissionData)
-    });
-    
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+
+    console.log("Submitting data:", submissionData);
+
+    // Use form submission method
+    const response = await submitFeedbackWithForm(submissionData);
+
+    if (response.status === "success") {
+      return { success: true, message: response.message };
     }
-    
-    const result = await response.json();
-    console.log('Server response:', result);
-    
-    if (result.status === 'success') {
-      return { success: true, message: result.message };
-    } else {
-      throw new Error(result.message || 'Failed to submit feedback');
-    }
-    
+
+    throw new Error(response.message || "Failed to submit feedback");
   } catch (error) {
-    console.error('Submission error:', error);
-    throw new Error('Failed to submit feedback: ' + error.message);
+    console.error("Submission error:", error);
+    throw error;
   } finally {
     setLoadingState(false);
   }
 }
 
-// Main function to load project data
-async function loadProjectData() {
-  try {
-    // Get project info from URL
-    const urlProject = parseProjectFromUrl();
+/**
+ * FIXED: Form submission method
+ */
+function submitFeedbackWithForm(submissionData) {
+  return new Promise((resolve, reject) => {
+    const formId = 'form_' + Math.round(100000 * Math.random());
+    const form = document.createElement('form');
+    form.id = formId;
+    form.method = 'POST';
+    form.action = FETCH_WEB_APP_URL;
+    form.style.display = 'none';
     
-    if (!urlProject) {
-      showError('No project specified in URL. Please use a valid project URL with the p parameter (format: ?p=/clientCode/projectCode).<br><br>Example: ?p=/367474/25408', true);
-      return;
-    }
+    // Add all data as hidden inputs
+    Object.keys(submissionData).forEach(key => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = submissionData[key];
+      form.appendChild(input);
+    });
     
-    console.log("Loading project from URL:", urlProject);
+    document.body.appendChild(form);
     
-    // Show loading state
-    document.getElementById('project-name').textContent = 'Loading Project...';
+    // Submit and listen for response
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      mode: 'no-cors' // Use no-cors mode for Apps Script
+    })
+    .then(response => {
+      // With no-cors, we can't read the response directly
+      // Apps Script will return a redirect to a success page
+      document.body.removeChild(form);
+      resolve({ status: "success", message: "Feedback submitted successfully!" });
+    })
+    .catch(error => {
+      document.body.removeChild(form);
+      reject(error);
+    });
     
-    // Fetch project data from web app
-    const projectData = await fetchProjectData(urlProject.clientCode, urlProject.projectCode);
-    
-    displayProjectData(projectData);
-
-  } catch (err) {
-    console.error(err);
-    showError('Unable to fetch project data: ' + (err.message || err), true);
-  }
+    // Also try direct form submit as fallback
+    form.submit();
+  });
 }
 
+/**
+ * Displays fetched project data and reveals the feedback form.
+ */
 function displayProjectData(project) {
-  const projectNameEl = document.getElementById('project-name');
-  const projectParagraphEl = document.getElementById('project-paragraph');
-  
-  // Use project title if present for heading
-  const heading = project.project_title || 'Unnamed Project';
-  projectNameEl.textContent = heading;
+  const projectNameEl = document.getElementById("project-name");
+  const projectParagraphEl = document.getElementById("project-paragraph");
 
-  // Generate the dynamic paragraph based on project_type
+  projectNameEl.textContent = project.project_title || "Unnamed Project";
+
   const paragraphHtml = generateProjectParagraph(project);
 
-  // Store project data for form submission
   currentProjectData = project;
 
   projectParagraphEl.innerHTML = paragraphHtml;
+
+  const spinner = document.getElementById("loading-spinner");
+  if (spinner) spinner.style.display = "none";
+
+  const container = document.getElementById("feedback-container");
+  if (container) container.style.display = "block";
   
-  document.getElementById('loading-spinner').style.display = 'none';
-  document.getElementById('feedback-container').style.display = 'block';
+  // Hide error container if it was showing
+  const errorMsgEl = document.getElementById("error-message");
+  if (errorMsgEl) errorMsgEl.style.display = "none";
 }
 
-// Generate project paragraph content
+/**
+ * Generates the project details paragraph based on project type.
+ */
 function generateProjectParagraph(project) {
-  const type = (project.project_type || '').toString().trim();
-  const code = project.project_code || '';
-  const client = project.client_code || '';
-  const title = project.project_title || '';
-  const patent = project.patent_number || '';
-  const product = project.product_name || '';
+  const type = (project.project_type || "").toString().trim();
+  const code = project.project_code || "";
+  const client = project.client_code || "";
+  const title = project.project_title || "";
+  const patent = project.patent_number || "";
+  const product = project.product_name || "";
 
-  console.log("Generating paragraph for project type:", type);
-
-  // Normalize for matching
   const t = type.toLowerCase();
-  
-  if (t.includes('patentability') || t.includes('patentibility') || (t.includes('patent') && (t.includes('search') || t.includes('analysis')))) {
-    return '<p>Thank you for collaborating with us on this Patentability Search project.<br>' +
-           'Your insights help us assess the inventive step and novelty with accuracy.<br>' +
-           'Please provide your feedback to help us improve our search strategies.</p>' +
-           '<p><strong>Project Details:</strong><br>' +
-           'Project Code: ' + escapeHtml(code) + '<br>' +
-           'Client Code: ' + escapeHtml(client) + '<br>' +
-           'Type: Patentability Search<br>' +
-           'Project Title: ' + escapeHtml(title) + 
-           (patent ? '<br>Patent Number: ' + escapeHtml(patent) : '') + '</p>' +
-           '<p>Thank you for your valuable partnership.</p>';
-  } else if (t.includes('invalidation') || t.includes('invalidity') || t.includes('opposition')) {
-    return '<p>We appreciate the opportunity to support you in this Invalidation Search project.<br>' +
-           'Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>' +
-           '<p><strong>Project Details:</strong><br>' +
-           'Project Code: ' + escapeHtml(code) + '<br>' +
-           'Client Code: ' + escapeHtml(client) + '<br>' +
-           'Type: Invalidation Search<br>' +
-           'Project Title: ' + escapeHtml(title) + '<br>' +
-           'Patent Number: ' + escapeHtml(patent) + '</p>' +
-           '<p>Thank you for trusting our expertise.</p>';
-  } else if (t.includes('infringement') || t.includes('infringment') || t.includes('freedom') || t.includes('f-to-operate') || t.includes('clearance')) {
-    return '<p>Thank you for working with us on this Infringement Study project.<br>' +
-           'Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>' +
-           '<p><strong>Project Details:</strong><br>' +
-           'Project Code: ' + escapeHtml(code) + '<br>' +
-           'Client Code: ' + escapeHtml(client) + '<br>' +
-           'Type: Infringement Study<br>' +
-           'Project Title: ' + escapeHtml(title) + '<br>' +
-           'Patent Number: ' + escapeHtml(patent) + '<br>' +
-           'Product Name: ' + escapeHtml(product) + '</p>' +
-           '<p>We appreciate your continued collaboration.</p>';
-  } else {
-    // Generic fallback
-    return '<p>Thank you for collaborating with us on this project.<br>' +
-           'Your feedback helps us improve our services and deliver better results.</p>' +
-           '<p><strong>Project Details:</strong><br>' +
-           'Project Code: ' + escapeHtml(code) + '<br>' +
-           'Client Code: ' + escapeHtml(client) + '<br>' +
-           'Type: ' + escapeHtml(type || 'Unknown') + '<br>' +
-           'Project Title: ' + escapeHtml(title) + 
-           (patent ? '<br>Patent Number: ' + escapeHtml(patent) : '') +
-           (product ? '<br>Product Name: ' + escapeHtml(product) : '') + '</p>' +
-           '<p>Thank you for your valuable partnership.</p>';
+
+  // 1. Patentability Search
+  if (
+    t.includes("patentability") ||
+    t.includes("patentibility") ||
+    (t.includes("patent") &&
+      (t.includes("search") || t.includes("analysis")))
+  ) {
+    return (
+      "<p>Thank you for collaborating with us on this Patentability Search project.<br>" +
+      "Your insights help us assess the inventive step and novelty with accuracy.<br>" +
+      "Please provide your feedback to help us improve our search strategies.</p>" +
+      "<p><strong>Project Details:</strong><br>" +
+      "Project Code: " +
+      escapeHtml(code) +
+      "<br>Client Code: " +
+      escapeHtml(client) +
+      "<br>Type: Patentability Search<br>" +
+      "Project Title: " +
+      escapeHtml(title) +
+      (patent ? "<br>Patent Number: " + escapeHtml(patent) : "") +
+      "</p><p>Thank you for your valuable partnership.</p>"
+    );
+  }
+
+  // 2. Invalidation/Invalidity Search
+  if (
+    t.includes("invalidation") ||
+    t.includes("invalidity") ||
+    t.includes("opposition")
+  ) {
+    return (
+      "<p>We appreciate the opportunity to support you in this Invalidation Search project.<br>" +
+      "Your feedback helps us refine our methodology.</p>" +
+      "<p><strong>Project Details:</strong><br>" +
+      "Project Code: " +
+      escapeHtml(code) +
+      "<br>Client Code: " +
+      escapeHtml(client) +
+      "<br>Type: Invalidation Search<br>" +
+      "Project Title: " +
+      escapeHtml(title) +
+      "<br>Patent Number: " +
+      escapeHtml(patent) +
+      "</p><p>Thank you for trusting our expertise.</p>"
+    );
+  }
+
+  // 3. Infringement/Freedom-to-Operate Study
+  if (
+    t.includes("infringement") ||
+    t.includes("infringment") ||
+    t.includes("freedom") ||
+    t.includes("clearance")
+  ) {
+    return (
+      "<p>Thank you for working with us on this Infringement Study project.</p>" +
+      "<p><strong>Project Details:</strong><br>" +
+      "Project Code: " +
+      escapeHtml(code) +
+      "<br>Client Code: " +
+      escapeHtml(client) +
+      "<br>Type: Infringement Study<br>" +
+      "Project Title: " +
+      escapeHtml(title) +
+      "<br>Patent Number: " +
+      escapeHtml(patent) +
+      "<br>Product Name: " +
+      escapeHtml(product) +
+      "</p><p>We appreciate your continued collaboration.</p>"
+    );
+  }
+
+  // 4. Default
+  return (
+    "<p>Thank you for collaborating with us on this project.</p>" +
+    "<p><strong>Project Details:</strong><br>" +
+    "Project Code: " +
+    escapeHtml(code) +
+    "<br>Client Code: " +
+    escapeHtml(client) +
+    "<br>Type: " +
+    escapeHtml(type || "General Project") +
+    "<br>Project Title: " +
+    escapeHtml(title) +
+    (patent ? "<br>Patent Number: " + escapeHtml(patent) : "") +
+    (product ? "<br>Product Name: " + escapeHtml(product) : "") +
+    "</p><p>Thank you for your valuable partnership.</p>"
+  );
+}
+
+/**
+ * Switches the view to the thank-you page and initiates loading of stats.
+ */
+function showThankYouPage() {
+  const feedback = document.getElementById("feedback-container");
+  const thanks = document.getElementById("thank-you-container");
+
+  if (feedback) feedback.style.display = "none";
+  if (thanks) thanks.style.display = "block";
+
+  // Load stats
+  loadStats();
+}
+
+/**
+ * Loads and displays project statistics.
+ */
+async function loadStats() {
+  try {
+    console.log("Loading stats for:", currentProjectData);
+    
+    // Use JSONP with stats parameter
+    const stats = await fetchProjectDataJsonp(
+      currentProjectData.client_code, 
+      currentProjectData.project_code, 
+      true
+    );
+    
+    console.log("Stats received:", stats);
+    
+    if (stats) {
+      document.getElementById("total-submissions").textContent = 
+        stats.total_submissions || "0";
+      document.getElementById("avg-rating").textContent = 
+        stats.average_rating || "0.0";
+    }
+  } catch (error) {
+    console.error("Error loading stats:", error);
+    // Fallback values on error
+    document.getElementById("total-submissions").textContent = "N/A";
+    document.getElementById("avg-rating").textContent = "N/A";
   }
 }
 
-// Thank You Page
-function showThankYouPage() {
-  document.getElementById('feedback-container').style.display = 'none';
-  document.getElementById('thank-you-container').style.display = 'block';
-}
+// ---------------- EVENT LISTENER --------------------
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("feedbackForm");
+  
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
-  // Load project data via web app
-  loadProjectData();
-  
-  // Form submission handler
-  document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      const firstError = document.querySelector('.error-message[style="display: block"]');
-      if (firstError) {
-        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!validateForm()) {
+        console.log("Form validation failed.");
+        return;
       }
-      return;
-    }
-    
-    // Collect form data
-    const formData = {
-      overallRating: document.querySelector('input[name="overallRating"]:checked').value,
-      qualityRating: document.querySelector('input[name="qualityRating"]:checked').value,
-      timelinessRating: document.querySelector('input[name="timelinessRating"]:checked').value,
-      communicationRating: document.querySelector('input[name="communicationRating"]:checked').value,
-      valueRating: document.querySelector('input[name="valueRating"]:checked').value,
-      comments: document.getElementById('comments').value
-    };
-    
-    try {
-      console.log('Form data collected:', formData);
-      console.log('Current project data:', currentProjectData);
-      
-      const result = await submitFeedback(formData, currentProjectData);
-      console.log('Submission successful:', result);
-      showThankYouPage();
-    } catch (error) {
-      console.error('Form submission error:', error);
-      alert('Error submitting feedback: ' + error.message);
-    }
-  });
-  
-  // Real-time validation for radio buttons
-  const radioGroups = document.querySelectorAll('input[type="radio"]');
-  radioGroups.forEach(radio => {
-    radio.addEventListener('change', function() {
-      const fieldName = this.name;
-      const errorElement = document.getElementById(fieldName + 'Error');
-      if (errorElement) {
-        errorElement.style.display = 'none';
+
+      // Collect form data
+      const formData = {
+        overallRating: document.querySelector('input[name="overallRating"]:checked')?.value,
+        qualityRating: document.querySelector('input[name="qualityRating"]:checked')?.value,
+        timelinessRating: document.querySelector('input[name="timelinessRating"]:checked')?.value,
+        communicationRating: document.querySelector('input[name="communicationRating"]:checked')?.value,
+        valueRating: document.querySelector('input[name="valueRating"]:checked')?.value,
+        comments: document.getElementById("comments").value,
+      };
+
+      try {
+        const result = await submitFeedback(formData, currentProjectData);
+        if (result.success) {
+          showThankYouPage();
+        } else {
+          alert("Submission failed: " + result.message);
+        }
+      } catch (error) {
+        alert("An error occurred during submission: " + error.message);
       }
     });
-  });
+  }
 });
 </script>
 </body>
