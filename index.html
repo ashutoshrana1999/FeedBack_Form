@@ -655,27 +655,28 @@ async function submitFeedback(formData, projectData) {
     
     console.log('Submitting data:', submissionData);
     
-    // METHOD 1: Using Google Forms-style submission (no preflight)
-    const formDataBody = new URLSearchParams();
-    Object.keys(submissionData).forEach(key => {
-      formDataBody.append(key, submissionData[key]);
-    });
-    
     const response = await fetch(SUBMIT_WEB_APP_URL, {
       method: 'POST',
-      mode: 'no-cors', // This bypasses CORS but you can't read response
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: formDataBody.toString()
+      body: JSON.stringify(submissionData)
     });
     
-    // With 'no-cors', we can't read response, but submission still happens
-    // We'll assume success if no error is thrown
-    console.log('Submission sent (no-cors mode)');
+    console.log('Response status:', response.status);
     
-    // Show success message (can't verify from response)
-    return { success: true, message: "Thank you! Your feedback has been submitted." };
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('Server response:', result);
+    
+    if (result.status === 'success') {
+      return { success: true, message: result.message };
+    } else {
+      throw new Error(result.message || 'Failed to submit feedback');
+    }
     
   } catch (error) {
     console.error('Submission error:', error);
@@ -684,6 +685,7 @@ async function submitFeedback(formData, projectData) {
     setLoadingState(false);
   }
 }
+
 // Main function to load project data
 async function loadProjectData() {
   try {
