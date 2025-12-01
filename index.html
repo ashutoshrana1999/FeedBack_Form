@@ -797,7 +797,10 @@ function showThankYouPage() {
   if (feedback) feedback.style.display = "none";
   if (thanks) thanks.style.display = "block";
 
-  loadStats();
+  // Delay stats load to allow Google Sheets to update
+  setTimeout(() => {
+    loadStats();
+  }, 1500);
 }
 
 // ---------------- LOAD STATS ------------------------
