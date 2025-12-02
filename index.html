@@ -703,6 +703,20 @@ function displayProjectData(project) {
   const nameEl = document.getElementById("project-name");
   const paraEl = document.getElementById("project-paragraph");
 
+  const type = (project.project_type || "").toLowerCase();
+  let title = project.project_title || "Unnamed Project";
+  
+  // Add patent number for Invalidation & Infringement
+  if (type.includes("invalidation") ||
+      type.includes("invalidity") ||
+      type.includes("infringement") ||
+      type.includes("infringment")) 
+  {
+    if (project.patent_number && project.patent_number.trim() !== "") {
+      title = `${title} — Patent No: ${project.patent_number}`;
+    }
+  }
+  
   nameEl.textContent = project.project_title || "Unnamed Project";
   paraEl.innerHTML = generateProjectParagraph(project);
 
