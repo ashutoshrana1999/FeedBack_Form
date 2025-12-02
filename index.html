@@ -213,7 +213,38 @@
         padding: 40px 0 20px 0;
         margin-top: 50px;
       }
-    
+      /* ============================================
+   EDIT RESPONSE BUTTON – CUSTOM LOGICAPT STYLE
+   ============================================ */
+.btn-edit-response {
+  padding: 10px 26px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  background: transparent;
+  transition: all 0.25s ease-in-out;
+  display: inline-block;
+}
+
+.btn-edit-response:hover {
+  background: var(--primary-color);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(255, 127, 39, 0.35);
+}
+
+.btn-edit-response:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 6px rgba(255, 127, 39, 0.25);
+}
+
+.btn-edit-response:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 127, 39, 0.35);
+}
+
     }
   </style>
 
@@ -703,21 +734,6 @@ function displayProjectData(project) {
   const nameEl = document.getElementById("project-name");
   const paraEl = document.getElementById("project-paragraph");
 
-  const typeRaw = (project.project_type || "").toString();
-  const type    = typeRaw.toLowerCase();
-  let title = project.project_title || "Unnamed Project";
-  
-  // Add patent number for Invalidation & Infringement
-  if (type.includes("invalidation") ||
-      type.includes("invalidity") ||
-      type.includes("infringement") ||
-      type.includes("infringment")) 
-  {
-    if (project.patent_number && project.patent_number.trim() !== "") {
-      title = `${title} — Patent No: ${project.patent_number}`;
-    }
-  }
-  
   nameEl.textContent = project.project_title || "Unnamed Project";
   paraEl.innerHTML = generateProjectParagraph(project);
 
