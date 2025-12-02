@@ -515,8 +515,8 @@
 
 <script>
 // Web App URLs
-const FETCH_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOPLNwst3Wxyl0ejh4HI18zSrNOySYGprpQ_ujxSEk-Njq8ZZMtqEW9pTUTJiomIY/exec';
-const SUBMIT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyOPLNwst3Wxyl0ejh4HI18zSrNOySYGprpQ_ujxSEk-Njq8ZZMtqEW9pTUTJiomIY/exec';
+const FETCH_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwdlKwXWGC9nDIrraoDZrolCyIvXaPVywKg929feUXZHR3nFrbeFRXCiQi8g9XJNA/exec';
+const SUBMIT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwdlKwXWGC9nDIrraoDZrolCyIvXaPVywKg929feUXZHR3nFrbeFRXCiQi8g9XJNA/exec';
 
 // Global variable to store current project data
 let currentProjectData = {};
@@ -587,11 +587,11 @@ function validateForm() {
   let isValid = true;
   
   const requiredFields = [
-    'overallRating',
-    'qualityRating', 
-    'timelinessRating',
-    'communicationRating',
-    'valueRating'
+    'OverallRating',
+    'QualityRating', 
+    'TimelinessRating',
+    'CommunicationRating',
+    'ValueRating'
   ];
   
   requiredFields.forEach(field => {
@@ -643,14 +643,14 @@ async function submitFeedback(formData, projectData) {
     
     // Prepare data for submission
     const submissionData = {
-      client_code: String(projectData.client_code),
-      project_code: String(projectData.project_code),
-      overall_rating: String(formData.overallRating),
-      quality_rating: String(formData.qualityRating),
-      timeliness_rating: String(formData.timelinessRating),
-      communication_rating: String(formData.communicationRating),
-      value_rating: String(formData.valueRating),
-      additional_comment: String(formData.comments || '')
+      Project Code: String(projectData.project_code),
+      Client Code: String(projectData.client_code),
+      Overall Rating: String(formData.overallRating),
+      Quality Rating: String(formData.qualityRating),
+      Timeliness Rating: String(formData.timelinessRating),
+      Communication Rating: String(formData.communicationRating),
+      Value Rating: String(formData.valueRating),
+      Additional CommentS: String(formData.comments || '')
     };
     
     console.log('Submitting data:', submissionData);
