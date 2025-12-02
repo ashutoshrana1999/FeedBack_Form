@@ -798,11 +798,13 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     // Matching logic based on project code and client code from currentProjectData
-    if (currentProjectData.client_code === formData.clientCode && currentProjectData.project_code === formData.projectCode) {
+    try {
+      // We trust the project loaded from Apps Script; it already matched client+project codes
       await submitFeedback(formData, currentProjectData);
       showThankYouPage();
-    } else {
-      showError("Client and Project Code do not match.");
+    } catch (err) {
+      console.error("Submit error:", err);
+      showError(escapeHtml(String(err.message || err)), false);
     }
   });
 
