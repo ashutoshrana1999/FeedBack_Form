@@ -790,7 +790,8 @@ async function loadAverageRating() {
     const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
 
     if (res && res.status === "success") {
-      document.getElementById("avg-rating").textContent = res.averageOverall || "0";
+      document.getElementById("avg-rating").textContent =
+        res.averageOverall || "0";
     } else {
       document.getElementById("avg-rating").textContent = "N/A";
     }
@@ -800,6 +801,34 @@ async function loadAverageRating() {
   }
 }
 
+/* ===============================
+   EDIT RESPONS HANDLER
+================================= */
+function editResponse() {
+  // Hide thank-you card
+  const thankYou = document.getElementById("thank-you-container");
+  if (thankYou) thankYou.style.display = "none";
+
+  // Show feedback form again
+  const formCard = document.getElementById("feedback-container");
+  if (formCard) formCard.style.display = "block";
+}
+
+/* ===============================
+   LOAD + EVENTS
+================================= */
+async function loadProjectData() {
+  const urlProject = parseProjectFromUrl();
+  if (!urlProject) {
+    showError('No project specified. Use: ?p=/clientCode/projectCode (example: ?p=/367474/25408)', true);
+    return;
+  }
+
+  document.getElementById("project-name").textContent = "Loading Project...";
+
+  const projectData = await fetchProjectData(urlProject.clientCode, urlProject.projectCode);
+  displayProjectData(projectData);
+}
   
 document.addEventListener("DOMContentLoaded", function () {
   loadProjectData();
