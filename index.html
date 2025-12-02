@@ -472,9 +472,9 @@
     <h2 style="color:#ff7f27;">Thank You for Your Feedback!</h2>
     <p>Your input helps us improve our services.</p>
 
-    <p><strong>Average Overall Rating:</strong> 
+    <!-- <p><strong>Average Overall Rating:</strong> 
        <span id="avg-rating">Loading…</span> / 5
-    </p>
+    </p> -->
 
     <button type="button" onclick="editResponse()" class="btn btn-primary px-4">
       Edit Response
@@ -823,23 +823,23 @@ function generateProjectParagraph(project) {
 function showThankYouPage() {
   document.getElementById("feedback-container").style.display = "none";
   document.getElementById("thank-you-container").style.display = "block";
-  loadAverageRating();
+  // loadAverageRating();
 }
 
-async function loadAverageRating() {
-  try {
-    const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
+// async function loadAverageRating() {
+//   try {
+//     const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
 
-    if (res && res.status === "success") {
-      document.getElementById("avg-rating").textContent = res.averageOverall || "0";
-    } else {
-      document.getElementById("avg-rating").textContent = "N/A";
-    }
-  } catch (err) {
-    document.getElementById("avg-rating").textContent = "N/A";
-    console.error("Summary load error:", err);
-  }
-}
+//     if (res && res.status === "success") {
+//       document.getElementById("avg-rating").textContent = res.averageOverall || "0";
+//     } else {
+//       document.getElementById("avg-rating").textContent = "N/A";
+//     }
+//   } catch (err) {
+//     document.getElementById("avg-rating").textContent = "N/A";
+//     console.error("Summary load error:", err);
+//   }
+// }
 
 /* ===============================
    EDIT RESPONSE HANDLER
