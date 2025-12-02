@@ -703,7 +703,8 @@ function displayProjectData(project) {
   const nameEl = document.getElementById("project-name");
   const paraEl = document.getElementById("project-paragraph");
 
-  const type = (project.project_type || "").toLowerCase();
+  const typeRaw = (project.project_type || "").toString();
+  const type    = typeRaw.toLowerCase();
   let title = project.project_title || "Unnamed Project";
   
   // Add patent number for Invalidation & Infringement
