@@ -737,7 +737,7 @@ function generateProjectParagraph(project) {
     `;
   }
 
-  if (t.includes("invalidation") || t.includes("invalidity") || t.includes("opposition")) {
+  else if (t.includes("invalidation") || t.includes("invalidity") || t.includes("opposition")) {
     return `
       <p>We appreciate the opportunity to support you in this Invalidation Search project.<br>
       Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>
@@ -752,7 +752,7 @@ function generateProjectParagraph(project) {
     `;
   }
 
-  if (t.includes("infringement") || t.includes("infringment") ||
+  else if (t.includes("infringement") || t.includes("infringment") ||
       t.includes("freedom") || t.includes("f-to-operate") || t.includes("clearance")) {
     return `
       <p>Thank you for working with us on this Infringement Study project.<br>
@@ -769,7 +769,7 @@ function generateProjectParagraph(project) {
       <p>We appreciate your continued collaboration.</p>
       
     `;
-  }
+  } else {
 
   return `
     <p>Thank you for collaborating with us on this project.<br>
@@ -784,7 +784,7 @@ function generateProjectParagraph(project) {
     
   `;
 }
-
+}
 /* ===============================
    THANK-YOU + SUMMARY
 ================================= */
