@@ -724,32 +724,40 @@ function generateProjectParagraph(project) {
   if (t.includes("patentability") || t.includes("patentibility") ||
       (t.includes("patent") && (t.includes("search") || t.includes("analysis")))) {
     return `
-      <p>Thank you for collaborating with us on this Patentability Search project.<br>
+     <p>Thank you for collaborating with us on this Patentability Search project.<br>
+      Your insights help us assess the inventive step and novelty with accuracy.<br>
       Please provide your feedback to help us improve our search strategies.</p>
       <p><strong>Project Details:</strong><br>
       Project Code: ${escapeHtml(code)}<br>
       Client Code: ${escapeHtml(client)}<br>
       Type: Patentability Search<br>
       Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ""}</p>
+
+      <p>Thank you for your valuable partnership.</p>
     `;
   }
 
   if (t.includes("invalidation") || t.includes("invalidity") || t.includes("opposition")) {
     return `
-      <p>We appreciate the opportunity to support you in this Invalidation Search project.</p>
+      <p>We appreciate the opportunity to support you in this Invalidation Search project.<br>
+      Your feedback helps us refine our methodology for identifying prior art and analysing patent strength.</p>
       <p><strong>Project Details:</strong><br>
       Project Code: ${escapeHtml(code)}<br>
       Client Code: ${escapeHtml(client)}<br>
       Type: Invalidation Search<br>
       Project Title: ${escapeHtml(title)}<br>
       Patent Number: ${escapeHtml(patent)}</p>
+      
+      <p>Thank you for trusting our expertise.</p>
     `;
   }
 
   if (t.includes("infringement") || t.includes("infringment") ||
       t.includes("freedom") || t.includes("f-to-operate") || t.includes("clearance")) {
     return `
-      <p>Thank you for working with us on this Infringement Study project.</p>
+      <p>Thank you for working with us on this Infringement Study project.<br>
+      Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>
+
       <p><strong>Project Details:</strong><br>
       Project Code: ${escapeHtml(code)}<br>
       Client Code: ${escapeHtml(client)}<br>
@@ -757,16 +765,23 @@ function generateProjectParagraph(project) {
       Project Title: ${escapeHtml(title)}<br>
       Patent Number: ${escapeHtml(patent)}<br>
       Product Name: ${escapeHtml(product)}</p>
+
+      <p>We appreciate your continued collaboration.</p>
+      
     `;
   }
 
   return `
-    <p>Thank you for collaborating with us on this project.</p>
+    <p>Thank you for collaborating with us on this project.<br>
+      Your feedback helps us improve our services and deliver better results.</p>
     <p><strong>Project Details:</strong><br>
     Project Code: ${escapeHtml(code)}<br>
     Client Code: ${escapeHtml(client)}<br>
     Type: ${escapeHtml(type || "Unknown")}<br>
     Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ""}${product ? `<br>Product Name: ${escapeHtml(product)}` : ""}</p>
+
+    <p>Thank you for your valuable partnership.</p>
+    
   `;
 }
 
