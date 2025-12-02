@@ -440,14 +440,16 @@
     <h2 style="color:#ff7f27;">Thank You for Your Feedback!</h2>
     <p>Your input helps us improve our services.</p>
 
-    <p><strong>Total Submissions:</strong> <span id="total-submissions">Loading…</span></p>
-    <p><strong>Average Overall Rating:</strong> <span id="avg-rating">Loading…</span> / 5</p>
+    <p><strong>Average Overall Rating:</strong> 
+       <span id="avg-rating">Loading…</span> / 5
+    </p>
 
-    <button onclick="location.reload()" class="btn btn-primary px-4">
-      Submit Another
+    <button type="button" onclick="editResponse()" class="btn btn-outline-primary px-4">
+      Edit Response
     </button>
   </div>
 </div>
+
 
 <footer>
   <div class="container">
@@ -777,34 +779,27 @@ async function loadProjectData() {
 function showThankYouPage() {
   document.getElementById("feedback-container").style.display = "none";
   document.getElementById("thank-you-container").style.display = "block";
-  loadSummary();
+  loadAverageRating();
 }
 
 /* ===============================
    SUMMARY DISPLAY (Thank-you page)
 ================================= */
-async function loadSummary() {
-  const totalEl = document.getElementById("total-submissions");
-  const avgEl   = document.getElementById("avg-rating");
-
+async function loadAverageRating() {
   try {
     const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
-    console.log("getSummary response:", res);
 
     if (res && res.status === "success") {
-      totalEl.textContent = String(res.totalSubmissions ?? 0);
-      const avg = res.averageOverall ?? 0;
-      avgEl.textContent = avg ? avg.toFixed(2) : "0.00";
+      document.getElementById("avg-rating").textContent = res.averageOverall || "0";
     } else {
-      totalEl.textContent = "—";
-      avgEl.textContent = "—";
+      document.getElementById("avg-rating").textContent = "N/A";
     }
   } catch (err) {
-    console.error("Summary error:", err);
-    totalEl.textContent = "—";
-    avgEl.textContent = "—";
+    document.getElementById("avg-rating").textContent = "N/A";
+    console.error("Summary load error:", err);
   }
 }
+
   
 document.addEventListener("DOMContentLoaded", function () {
   loadProjectData();
