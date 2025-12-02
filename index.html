@@ -777,8 +777,35 @@ async function loadProjectData() {
 function showThankYouPage() {
   document.getElementById("feedback-container").style.display = "none";
   document.getElementById("thank-you-container").style.display = "block";
+  loadSummary();
 }
 
+/* ===============================
+   SUMMARY DISPLAY (Thank-you page)
+================================= */
+async function loadSummary() {
+  const totalEl = document.getElementById("total-submissions");
+  const avgEl   = document.getElementById("avg-rating");
+
+  try {
+    const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
+    console.log("getSummary response:", res);
+
+    if (res && res.status === "success") {
+      totalEl.textContent = String(res.totalSubmissions ?? 0);
+      const avg = res.averageOverall ?? 0;
+      avgEl.textContent = avg ? avg.toFixed(2) : "0.00";
+    } else {
+      totalEl.textContent = "—";
+      avgEl.textContent = "—";
+    }
+  } catch (err) {
+    console.error("Summary error:", err);
+    totalEl.textContent = "—";
+    avgEl.textContent = "—";
+  }
+}
+  
 document.addEventListener("DOMContentLoaded", function () {
   loadProjectData();
 
