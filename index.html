@@ -753,10 +753,12 @@ function displayProjectData(project) {
   }
 
   // 2) Invalidation / Infringement / FTO / Clearance → show PATENT NUMBER
-  else if (
-    type.includes("invalidation") || type.includes("invalidity") || type.includes("opposition") ||
-    type.includes("infringement") || type.includes("infringment") || type.includes("clearance")
-  ) {
+  else
+  //  if (
+  //   type.includes("invalidation") || type.includes("invalidity") || type.includes("opposition") ||
+  //   type.includes("infringement") || type.includes("infringment") || type.includes("clearance")
+  // ) 
+  {
     headingText = patent || title || "Unnamed Project";
   }
 
