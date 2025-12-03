@@ -734,8 +734,6 @@ function displayProjectData(project) {
   const nameEl = document.getElementById("project-name");
   const paraEl = document.getElementById("project-paragraph");
 
-  // nameEl.textContent = project.project_title || "Unnamed Project";
-  
   const typeRaw = project.project_type || "";
   const type    = typeRaw.toLowerCase();
   const title   = project.project_title || "";
@@ -751,20 +749,23 @@ function displayProjectData(project) {
   ) {
     headingText = title || patent || "Unnamed Project";
   }
-
   // 2) Invalidation / Infringement / FTO / Clearance → show PATENT NUMBER
-  else  if (
-    type.includes("invalidation") || type.includes("invalidity") || type.includes("opposition") || 
-    type.includes("infringement") || type.includes("infringment") || type.includes("clearance")
-   ) 
-  {
+  else if (
+    type.includes("invalidation") || type.includes("invalidity") || type.includes("opposition") ||
+    type.includes("infringement") || type.includes("infringment") ||
+    type.includes("freedom") || type.includes("f-to-operate") || type.includes("clearance")
+  ) {
     headingText = patent || title || "Unnamed Project";
   }
-
   // 3) Other project types → default to PROJECT TITLE
   else {
     headingText = title || patent || "Unnamed Project";
   }
+
+  // *** SET THE HEADING TEXT ***
+  nameEl.textContent = headingText;
+
+  // Detailed paragraph stays as is
   paraEl.innerHTML = generateProjectParagraph(project);
 
   currentProjectData = project;
@@ -832,43 +833,27 @@ function generateProjectParagraph(project) {
     `;
   } else {
 
-  return `
-    <p>Thank you for collaborating with us on this project.<br>
-      Your feedback helps us improve our services and deliver better results.</p>
-    <p><strong>Project Details:</strong><br>
-    Project Code: ${escapeHtml(code)}<br>
-    Client Code: ${escapeHtml(client)}<br>
-    Type: ${escapeHtml(type || "Unknown")}<br>
-    Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ""}${product ? `<br>Product Name: ${escapeHtml(product)}` : ""}</p>
+    return `
+      <p>Thank you for collaborating with us on this project.<br>
+        Your feedback helps us improve our services and deliver better results.</p>
+      <p><strong>Project Details:</strong><br>
+      Project Code: ${escapeHtml(code)}<br>
+      Client Code: ${escapeHtml(client)}<br>
+      Type: ${escapeHtml(type || "Unknown")}<br>
+      Project Title: ${escapeHtml(title)}${patent ? `<br>Patent Number: ${escapeHtml(patent)}` : ""}${product ? `<br>Product Name: ${escapeHtml(product)}` : ""}</p>
 
-    <p>Thank you for your valuable partnership.</p>
-    
-  `;
+      <p>Thank you for your valuable partnership.</p>
+    `;
+  }
 }
-}
+
 /* ===============================
    THANK-YOU + SUMMARY
 ================================= */
 function showThankYouPage() {
   document.getElementById("feedback-container").style.display = "none";
   document.getElementById("thank-you-container").style.display = "block";
-  // loadAverageRating();
 }
-
-// async function loadAverageRating() {
-//   try {
-//     const res = await jsonp(WEB_APP_URL, { op: "getSummary" });
-
-//     if (res && res.status === "success") {
-//       document.getElementById("avg-rating").textContent = res.averageOverall || "0";
-//     } else {
-//       document.getElementById("avg-rating").textContent = "N/A";
-//     }
-//   } catch (err) {
-//     document.getElementById("avg-rating").textContent = "N/A";
-//     console.error("Summary load error:", err);
-//   }
-// }
 
 /* ===============================
    EDIT RESPONSE HANDLER
@@ -931,6 +916,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 </script>
+
 
 
 
