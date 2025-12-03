@@ -734,7 +734,36 @@ function displayProjectData(project) {
   const nameEl = document.getElementById("project-name");
   const paraEl = document.getElementById("project-paragraph");
 
-  nameEl.textContent = project.project_title || "Unnamed Project";
+  // nameEl.textContent = project.project_title || "Unnamed Project";
+  
+  const typeRaw = project.project_type || "";
+  const type    = typeRaw.toLowerCase();
+  const title   = project.project_title || "";
+  const patent  = project.patent_number ? String(project.patent_number).trim() : "";
+
+  let headingText = "";
+
+  // 1) Patentability → show PROJECT TITLE
+  if (
+    type.includes("patentability") ||
+    type.includes("patentibility") ||
+    (type.includes("patent") && (type.includes("search") || type.includes("analysis")))
+  ) {
+    headingText = title || patent || "Unnamed Project";
+  }
+
+  // 2) Invalidation / Infringement / FTO / Clearance → show PATENT NUMBER
+  else if (
+    type.includes("invalidation") || type.includes("invalidity") || type.includes("opposition") ||
+    type.includes("infringement") || type.includes("infringment") || type.includes("clearance")
+  ) {
+    headingText = patent || title || "Unnamed Project";
+  }
+
+  // 3) Other project types → default to PROJECT TITLE
+  else {
+    headingText = title || patent || "Unnamed Project";
+  }
   paraEl.innerHTML = generateProjectParagraph(project);
 
   currentProjectData = project;
@@ -784,8 +813,7 @@ function generateProjectParagraph(project) {
     `;
   }
 
-  else if (t.includes("infringement") || t.includes("infringment") ||
-      t.includes("freedom") || t.includes("f-to-operate") || t.includes("clearance")) {
+  else if (t.includes("infringement") || t.includes("infringment") || t.includes("clearance")) {
     return `
       <p>Thank you for working with us on this Infringement Study project.<br>
       Your feedback enables us to improve our evaluation of claim mapping and product analysis.</p>
